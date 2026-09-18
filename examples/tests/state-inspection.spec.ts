@@ -14,6 +14,14 @@ test.describe('Reading control state', () => {
     const cart = new CartPage(page);
     await cart.open();
 
+    // Notice these use `expect(await cart.categoryList.isVisible()).toBe(true)`, NOT
+    // `await expect(await cart.categoryList.resolve()).toBeVisible()` (the pattern used in
+    // `examples/tests/cart.spec.ts`). Both eventually check the same underlying thing, but
+    // `.isVisible()` returns a plain, already-settled `boolean` - it checks once and gives you an
+    // immediate yes/no answer, with no further retrying. Playwright's `.toBeVisible()` assertion,
+    // by contrast, keeps re-checking for several seconds before giving up - the right choice when
+    // you expect something to *become* visible soon, but not what you want for "tell me the
+    // current state, right now, and I'll decide what to do with that."
     expect(await cart.categoryList.isVisible()).toBe(true);
     expect(await cart.searchField.isEnabled()).toBe(true);
 
@@ -23,6 +31,10 @@ test.describe('Reading control state', () => {
 
     // A locator for something that was never on this page resolves to 0, not an error.
     const missing = ui5(page).text('This text does not appear anywhere on this page');
+    // `{ timeout: 1000 }` here keeps this test fast: without it, `.count()`/`.isVisible()` would
+    // use their normal, much longer default timeout before concluding "still nothing found" -
+    // reasonable when you're waiting for something you expect to eventually appear, wasteful
+    // when (as here) you're deliberately checking that something never does.
     expect(await missing.count({ timeout: 1000 })).toBe(0);
     expect(await missing.isVisible({ timeout: 1000 })).toBe(false);
   });

@@ -12,6 +12,10 @@ import { CartPage } from '../pages/CartPage';
  * enabling this in your own CI.
  */
 test.describe('Visual regression', () => {
+  // `test.skip(condition, reason)`, called at the top level of a `describe` block (not inside a
+  // `test(...)` callback), conditionally skips every test in that block - evaluated once, when
+  // this file is first loaded, not per-test. `process.platform` is a plain Node.js global
+  // ('darwin' for macOS, 'linux', 'win32', ...) - nothing Playwright-specific about it.
   test.skip(
     process.platform !== 'darwin',
     `Baseline snapshot was generated on macOS, not ${process.platform} - see docs/visual-testing.md before enabling in CI.`,
@@ -23,6 +27,12 @@ test.describe('Visual regression', () => {
 
     const categoryList = await cart.categoryList.resolve();
 
+    // `expect(locator).toHaveScreenshot('name.png', options)` is Playwright's own built-in
+    // visual comparison assertion - no extra package needed (unlike `examples/tests/accessibility.spec.ts`'s
+    // `@axe-core/playwright`). The first time this ever runs (with `--update-snapshots`), it
+    // *creates* `category-list-chromium-darwin.png` next to this file; every run after that
+    // compares the live element against that saved image instead.
+    //
     // A small tolerance absorbs minor anti-aliasing noise between runs on the same machine,
     // without hiding a genuine visual change.
     await expect(categoryList).toHaveScreenshot('category-list.png', {
