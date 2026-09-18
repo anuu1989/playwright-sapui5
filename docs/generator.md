@@ -8,6 +8,9 @@ settle, reads its live control tree, and writes a starter `Ui5Page` subclass - o
 control it finds. It's meant to save you the tedium of hand-typing every locator when you're
 starting on a new app, **not** to produce a finished, ready-to-commit Page Object.
 
+Looking for the other CLI command - the one that scaffolds a whole new _project_, not just one
+Page Object? See [docs/init.md](init.md) (`pw-sapui5 init`).
+
 ## Usage
 
 After installing the package (or from a clone of this repo, after `npm run build`):

@@ -20,9 +20,26 @@ asynchronously as data binds and routes change, and shows/hides busy indicators 
 - **Page Object base class** (`Ui5Page`) with a tiny, consistent API.
 - **A Page Object generator CLI** that inspects a running SAPUI5 app and writes a starter Page
   Object class from its live control tree.
+- **A project scaffolding CLI** (`pw-sapui5 init`) that sets up a whole runnable project - config,
+  example test, editor setup - in one command.
+- Documented, real-example-backed recipes for **accessibility testing**, **visual regression
+  testing**, **multi-environment configuration**, and **authentication** - see the docs table
+  below.
 
 It's a plain npm library - install it in any Playwright project (or several) and import what you
 need; nothing about it is tied to this repository's example app.
+
+## Quick start
+
+```bash
+mkdir my-tests && cd my-tests && npm init -y
+npm install --save-dev playwright-sapui5 @playwright/test dotenv typescript @types/node
+npx pw-sapui5 init --base-url https://your-app.example.com/
+npx playwright install chromium
+npx playwright test
+```
+
+That scaffolds a whole ready-to-run project - see [docs/init.md](docs/init.md).
 
 **New to this framework?** Start with **[docs/getting-started.md](docs/getting-started.md)** -
 it assumes no prior Playwright or SAPUI5 knowledge and walks through everything step by step.
@@ -77,12 +94,17 @@ export class CartPage extends Ui5Page {
 | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
 | [docs/typescript-for-beginners.md](docs/typescript-for-beginners.md) | **Start here if TypeScript itself is new to you** - every bit of syntax you'll meet, explained           |
 | [docs/getting-started.md](docs/getting-started.md)                   | Install, prerequisites, your first test, running it                                                      |
+| [docs/init.md](docs/init.md)                                         | `pw-sapui5 init` - scaffold a whole ready-to-run project in one command                                  |
 | [docs/core-concepts.md](docs/core-concepts.md)                       | Why SAPUI5 needs a different approach; how the framework works under the hood                            |
 | [docs/locators.md](docs/locators.md)                                 | Every locator strategy, the `ui5()` helper, self-healing, fallback chains                                |
 | [docs/auto-wait.md](docs/auto-wait.md)                               | How auto-waiting works, tuning timeouts, when it can't help you                                          |
 | [docs/page-objects.md](docs/page-objects.md)                         | The `Ui5Page` pattern, structuring a real test suite                                                     |
 | [docs/examples.md](docs/examples.md)                                 | A guided tour of every example test - search, self-healing, data-driven tests, network mocking, and more |
 | [docs/generator.md](docs/generator.md)                               | The `pw-sapui5 generate` CLI, options, and its limits                                                    |
+| [docs/multi-environment-config.md](docs/multi-environment-config.md) | Pointing tests at dev/QA/prod via env vars instead of hardcoded URLs                                     |
+| [docs/authentication.md](docs/authentication.md)                     | Logging in once and reusing the session across tests                                                     |
+| [docs/accessibility.md](docs/accessibility.md)                       | Accessibility testing with axe-core                                                                      |
+| [docs/visual-testing.md](docs/visual-testing.md)                     | Screenshot-based visual regression testing, and its platform gotcha                                      |
 | [docs/api-reference.md](docs/api-reference.md)                       | Every exported class, function, and type                                                                 |
 | [docs/troubleshooting.md](docs/troubleshooting.md)                   | Common errors and how to fix them                                                                        |
 
@@ -114,11 +136,12 @@ npx playwright install chromium
 npm test
 ```
 
-This runs all 7 files in [`examples/tests/`](examples/tests/) - covering basic navigation, form
+This runs all 9 files in [`examples/tests/`](examples/tests/) - covering basic navigation, form
 filling, multi-step Page Object flows, data-driven tests, self-healing locators, network mocking,
-and state inspection - against SAP's own public Shopping Cart SAPUI5 demo app, so no setup beyond
-an internet connection is needed. See [docs/examples.md](docs/examples.md) for a guided tour of
-which file covers what.
+state inspection, accessibility, and visual regression - against SAP's own public Shopping Cart
+SAPUI5 demo app, so no setup beyond an internet connection is needed. (The visual regression test
+skips itself outside macOS - see [docs/visual-testing.md](docs/visual-testing.md#platform-sensitivity).)
+See [docs/examples.md](docs/examples.md) for a guided tour of which file covers what.
 
 ## License
 

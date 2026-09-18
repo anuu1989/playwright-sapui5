@@ -2,8 +2,6 @@ import type { Page } from '@playwright/test';
 import { Ui5Locator, Ui5Page } from '../../src';
 import { CategoryPage } from './CategoryPage';
 
-const APP_URL = 'https://ui5.sap.com/test-resources/sap/m/demokit/cart/webapp/index.html';
-
 /**
  * Page Object for SAP's public "Shopping Cart" SAPUI5 demo app - the same app the SAPUI5 team
  * uses in its own testing tutorials. Used by the example tests in `examples/tests/` to prove
@@ -15,7 +13,13 @@ export class CartPage extends Ui5Page {
   }
 
   async open(): Promise<void> {
-    await this.goto(APP_URL);
+    // Navigates to Playwright's configured `baseURL` (see playwright.config.ts) rather than a
+    // hardcoded address, so this whole suite can be pointed at a different app via the BASE_URL
+    // env var without touching any Page Object - see docs/multi-environment-config.md. The empty
+    // string matters: `goto('/')` would resolve to the *domain root*, discarding baseURL's own
+    // path (this app's baseURL isn't served from a domain root) - `goto('')` resolves to
+    // baseURL exactly, unchanged.
+    await this.goto('');
   }
 
   /** Primary strategy: the field's stable id. Fallback: its control type, in case the id ever changes. */

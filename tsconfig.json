@@ -1,8 +1,12 @@
 {
+  // No explicit "moduleResolution": TS infers the right default for "module": "CommonJS" on its
+  // own, and doing it this way stays correct across TypeScript major versions - explicit "node"
+  // was removed outright in TypeScript 7, and "bundler" requires an ESM-style "module" value,
+  // which would conflict with the CommonJS output this package (and Playwright's own transform)
+  // expects.
   "compilerOptions": {
     "target": "ES2020",
     "module": "CommonJS",
-    "moduleResolution": "node",
     "lib": ["ES2020", "DOM"],
     "strict": true,
     "esModuleInterop": true,

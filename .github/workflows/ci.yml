@@ -29,6 +29,20 @@ jobs:
       - name: Build library
         run: npm run build
 
+      - name: Smoke-test the `pw-sapui5 init` scaffolding CLI
+        # Packs the library the way npm consumers actually receive it (not a symlinked/local
+        # dependency, which resolves peer packages differently) and type-checks the generated
+        # project against whatever TypeScript version is current at the time - this is exactly
+        # how a real regression (TypeScript 7 removing "moduleResolution": "node") was caught
+        # during development.
+        run: |
+          npm pack
+          mkdir -p /tmp/pw-sapui5-init-check
+          node dist/generator/cli.js init --dir /tmp/pw-sapui5-init-check --base-url "https://example.com/"
+          cd /tmp/pw-sapui5-init-check
+          npm install --no-save "$GITHUB_WORKSPACE"/playwright-sapui5-*.tgz @playwright/test dotenv typescript @types/node
+          npx tsc --noEmit
+
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 

@@ -41,13 +41,9 @@ npx playwright install chromium
 `@playwright/test` is a **peer dependency** - you install it yourself, once, in your project.
 This lets you control exactly which Playwright version you're on.
 
-If you don't have a Playwright project yet, the fastest way to get one is:
-
-```bash
-npm init playwright@latest
-```
-
-then add `playwright-sapui5` on top.
+If you don't have a project yet, `pw-sapui5 init` scaffolds a whole ready-to-run one for you in
+one command - config, example test, editor setup - see [docs/init.md](init.md). The rest of this
+guide works the same either way; skip to [step 3](#3-your-first-test) once you have a project.
 
 ## 3. Your first test
 

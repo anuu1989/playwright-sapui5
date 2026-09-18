@@ -4,6 +4,7 @@ playwright-report/
 test-results/
 blob-report/
 *.tsbuildinfo
+*.tgz
 .env
 .DS_Store
 npm-debug.log*
