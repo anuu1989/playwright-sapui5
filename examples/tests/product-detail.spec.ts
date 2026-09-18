@@ -7,12 +7,23 @@ import { CartPage } from '../pages/CartPage';
  * docs/page-objects.md#composing-page-objects.
  */
 test.describe('Product detail', () => {
+  // The `async ({ page }) => { ... }` callback here is written across multiple lines - unlike the
+  // single-line arrow functions in the other example files - purely because the test's *name*
+  // string is long enough that keeping `async ({ page }) => {` on the same line would run past a
+  // comfortable line width. This is exactly the kind of thing an auto-formatter (this project
+  // uses Prettier - see the README) decides for you; the code means the same thing either way.
   test('opening a product from a category shows its detail and adds it to the cart', async ({
     page,
   }) => {
     const cart = new CartPage(page);
     await cart.open();
 
+    // `selectCategory` and `openProduct` are both `async` methods returning a *different* Page
+    // Object each time (`CategoryPage`, then `ProductDetailPage`) - each one representing
+    // "wherever clicking just took you." `category` and `detail` below are ordinary local
+    // variables (TypeScript infers their types automatically from what each method returns - see
+    // docs/typescript-for-beginners.md#type-annotations-on-variables - so there's no need to
+    // write `const category: CategoryPage = ...` by hand).
     const category = await cart.selectCategory('Laptops');
     const detail = await category.openProduct('Astro Laptop 1516');
 

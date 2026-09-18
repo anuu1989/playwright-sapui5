@@ -25,9 +25,25 @@ import type { WaitForUi5Options } from './types';
  *   }
  * }
  * ```
+ *
+ * `abstract class` (see docs/typescript-for-beginners.md#classes) means you can never write
+ * `new Ui5Page(page)` directly - only `class LoginPage extends Ui5Page { ... }`, then
+ * `new LoginPage(page)`. That's deliberate: this class only exists to be built on top of.
  */
 export abstract class Ui5Page {
+  // `constructor(protected readonly page: Page) {}` is a TypeScript shortcut: writing an access
+  // modifier (`protected`) directly on a constructor parameter both declares a class property of
+  // the same name AND assigns it from that argument, in one line - equivalent to writing
+  // `protected readonly page: Page;` above and `this.page = page;` inside the constructor body
+  // by hand. `protected` means only this class and subclasses (your own `LoginPage`, etc.) can
+  // read `this.page` - code outside the class can't reach into `somePage.page` directly.
   constructor(protected readonly page: Page) {}
+
+  // --- Locator helpers -------------------------------------------------------------------------
+  // These five methods are thin `protected` wrappers around `Ui5Locator`'s own static factories,
+  // pre-filled with `this.page` so your own Page Object subclasses never have to pass `page`
+  // around themselves - compare `this.id('searchField')` here to the equivalent
+  // `Ui5Locator.id(this.page, 'searchField')` you'd otherwise have to write in every getter.
 
   protected id(value: string, options?: { exact?: boolean }): Ui5Locator {
     return Ui5Locator.id(this.page, value, options);
@@ -57,6 +73,10 @@ export abstract class Ui5Page {
     // bridge after `goto()` would miss all of it, and auto-wait would settle too early.
     await Ui5Bridge.ensure(this.page);
     await this.page.goto(url);
+    // `.catch(() => {})` here: not every app under test necessarily has SAPUI5 booted on the very
+    // first route you land on (some apps redirect through a plain login page first, for
+    // example), so a timeout waiting for `sap.ui.getCore()` shouldn't stop your test from
+    // continuing - you (or the next explicit wait) get to decide what to do next.
     await waitForUi5Core(this.page, options).catch(() => {
       /* not every app under test boots UI5 immediately on this route; caller can still act */
     });

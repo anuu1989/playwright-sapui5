@@ -25,7 +25,13 @@ export class CategoryPage extends Ui5Page {
     return this.id('category--page-navButton').as('Back to categories button');
   }
 
-  /** Every product row currently rendered in this category's list. */
+  /**
+   * Every product row currently rendered in this category's list - a `controlType(...)` locator
+   * with no further filter, so it matches *all* of them at once. `examples/tests/data-driven.spec.ts`
+   * uses this via `.count()` to assert "at least one product exists," without caring which
+   * specific products they are - compare that to `product(name)` just below, which finds exactly
+   * one named product.
+   */
   get products(): Ui5Locator {
     return this.controlType('sap.m.ObjectListItem').as('Products in this category');
   }
@@ -34,6 +40,13 @@ export class CategoryPage extends Ui5Page {
     return this.text(name, { controlType: 'sap.m.ObjectListItem' }).as(`Product: ${name}`);
   }
 
+  /**
+   * Clicks a named product and returns a Page Object for the detail pane it reveals. This is the
+   * middle link in a three-step composed chain: `CartPage.selectCategory()` returns a
+   * `CategoryPage`, this returns a `ProductDetailPage` - see
+   * `examples/tests/product-detail.spec.ts` for the full chain in use, and
+   * docs/page-objects.md#composing-page-objects for the pattern explained.
+   */
   async openProduct(name: string): Promise<ProductDetailPage> {
     await this.product(name).click();
     return new ProductDetailPage(this.page);

@@ -10,6 +10,12 @@ export class ProductDetailPage extends Ui5Page {
     super(page);
   }
 
+  /**
+   * A method, not a `get` accessor, because the product's title text is the only thing that
+   * identifies which product's detail pane you mean - there's no stable id to reach for here
+   * (see `CartPage.product()`'s comment on why this app's individual product controls don't have
+   * one worth relying on).
+   */
   title(name: string): Ui5Locator {
     return this.text(name, { controlType: 'sap.m.Title' }).as(`Product title: ${name}`);
   }

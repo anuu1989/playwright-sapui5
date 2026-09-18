@@ -10,6 +10,11 @@ import type { WaitForUi5Options } from './types';
 export async function waitForUi5Core(page: Page, options: WaitForUi5Options = {}): Promise<void> {
   const timeout = options.timeout ?? 30000;
   await Ui5Bridge.ensure(page);
+  // `page.waitForFunction(predicate, arg, options)` - same mechanism explained in detail in
+  // `src/core/SelfHealingResolver.ts`: the arrow function below runs *inside the browser*,
+  // repeatedly, until it returns something truthy or `timeout` elapses. There's no meaningful
+  // `arg` to pass here (nothing browser-side needs data from Node for this particular check),
+  // which is why the second argument is `undefined`.
   await page.waitForFunction(
     () => (window as any).__pwSapUi5__?.isCoreReady() === true,
     undefined,
@@ -44,6 +49,12 @@ export async function waitForUi5(page: Page, options: WaitForUi5Options = {}): P
   await Ui5Bridge.ensure(page);
   await page.waitForFunction(
     () => {
+      // This whole callback body runs in the browser, on every poll tick. `isSettled()` is the
+      // one function that actually does the interesting work here (see
+      // `src/browser/bridgeScript.ts`) - this predicate is mostly just "is the bridge even
+      // installed yet, and if so, ask it." Returning `true` when there's no bridge at all is
+      // what lets this function resolve quickly on a page that never boots SAPUI5, instead of
+      // hanging until `timeout`.
       const bridge = (window as any).__pwSapUi5__;
       return bridge ? bridge.isSettled() : true;
     },

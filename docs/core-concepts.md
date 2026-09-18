@@ -95,3 +95,9 @@ two reasons:
   versions (roughly pre-1.95) used a different, now-removed control registry API; the bridge
   falls back to those legacy APIs where it can, but hasn't been tested against them. See
   [`src/browser/bridgeScript.ts`](../src/browser/bridgeScript.ts) if you need to adapt it.
+
+## Want to see this traced through the actual code?
+
+Everything above describes the _why_ and the _shape_ of the mechanism. For a step-by-step,
+file-by-file walkthrough of exactly what runs - with sequence diagrams - when you call `goto()`
+or `.click()`, see [docs/architecture.md](architecture.md).

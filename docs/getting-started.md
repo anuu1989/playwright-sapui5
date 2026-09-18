@@ -157,6 +157,8 @@ more patterns, and [docs/auto-wait.md](auto-wait.md) for exactly what "settle" m
 - [docs/core-concepts.md](core-concepts.md) - _why_ SAPUI5 apps need this, and how the framework
   talks to the SAPUI5 control tree under the hood. Worth reading once - it makes everything else
   make more sense.
+- [docs/architecture.md](architecture.md) - curious what actually happens, file by file, when you
+  call `.click()` or `goto()`? This traces it end to end with diagrams, against the real source.
 - [docs/locators.md](locators.md) - every locator strategy, plus **self-healing** (fallback
   locators that keep your tests passing when a primary strategy stops matching).
 - [docs/generator.md](generator.md) - point a CLI at your running app and get a starter Page
