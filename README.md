@@ -73,17 +73,18 @@ export class CartPage extends Ui5Page {
 
 ## Documentation
 
-| Guide                                                                | What's in it                                                                                   |
-| -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| [docs/typescript-for-beginners.md](docs/typescript-for-beginners.md) | **Start here if TypeScript itself is new to you** - every bit of syntax you'll meet, explained |
-| [docs/getting-started.md](docs/getting-started.md)                   | Install, prerequisites, your first test, running it                                            |
-| [docs/core-concepts.md](docs/core-concepts.md)                       | Why SAPUI5 needs a different approach; how the framework works under the hood                  |
-| [docs/locators.md](docs/locators.md)                                 | Every locator strategy, the `ui5()` helper, self-healing, fallback chains                      |
-| [docs/auto-wait.md](docs/auto-wait.md)                               | How auto-waiting works, tuning timeouts, when it can't help you                                |
-| [docs/page-objects.md](docs/page-objects.md)                         | The `Ui5Page` pattern, structuring a real test suite                                           |
-| [docs/generator.md](docs/generator.md)                               | The `pw-sapui5 generate` CLI, options, and its limits                                          |
-| [docs/api-reference.md](docs/api-reference.md)                       | Every exported class, function, and type                                                       |
-| [docs/troubleshooting.md](docs/troubleshooting.md)                   | Common errors and how to fix them                                                              |
+| Guide                                                                | What's in it                                                                                             |
+| -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| [docs/typescript-for-beginners.md](docs/typescript-for-beginners.md) | **Start here if TypeScript itself is new to you** - every bit of syntax you'll meet, explained           |
+| [docs/getting-started.md](docs/getting-started.md)                   | Install, prerequisites, your first test, running it                                                      |
+| [docs/core-concepts.md](docs/core-concepts.md)                       | Why SAPUI5 needs a different approach; how the framework works under the hood                            |
+| [docs/locators.md](docs/locators.md)                                 | Every locator strategy, the `ui5()` helper, self-healing, fallback chains                                |
+| [docs/auto-wait.md](docs/auto-wait.md)                               | How auto-waiting works, tuning timeouts, when it can't help you                                          |
+| [docs/page-objects.md](docs/page-objects.md)                         | The `Ui5Page` pattern, structuring a real test suite                                                     |
+| [docs/examples.md](docs/examples.md)                                 | A guided tour of every example test - search, self-healing, data-driven tests, network mocking, and more |
+| [docs/generator.md](docs/generator.md)                               | The `pw-sapui5 generate` CLI, options, and its limits                                                    |
+| [docs/api-reference.md](docs/api-reference.md)                       | Every exported class, function, and type                                                                 |
+| [docs/troubleshooting.md](docs/troubleshooting.md)                   | Common errors and how to fix them                                                                        |
 
 ## Project layout
 
@@ -113,8 +114,11 @@ npx playwright install chromium
 npm test
 ```
 
-This runs `examples/tests/cart.spec.ts` against SAP's own public Shopping Cart SAPUI5 demo app,
-so no setup beyond an internet connection is needed.
+This runs all 7 files in [`examples/tests/`](examples/tests/) - covering basic navigation, form
+filling, multi-step Page Object flows, data-driven tests, self-healing locators, network mocking,
+and state inspection - against SAP's own public Shopping Cart SAPUI5 demo app, so no setup beyond
+an internet connection is needed. See [docs/examples.md](docs/examples.md) for a guided tour of
+which file covers what.
 
 ## License
 

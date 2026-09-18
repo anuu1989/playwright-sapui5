@@ -55,6 +55,26 @@ fragment** in a test. Prefer:
 This framework's own example tests hit this exact issue during development - see the comment in
 [`examples/pages/CartPage.ts`](../examples/pages/CartPage.ts) for the real fix that was applied.
 
+## An `id()` locator matches two elements instead of one, and Playwright refuses to act
+
+SAPUI5's `NavContainer` (used for master-detail and page-to-page navigation) keeps the
+**previous** page in the DOM after a transition - hidden, so it can transition back in smoothly -
+rather than removing it outright. If two pages that were both, at different times, shown in the
+same `NavContainer` happen to reuse the same _local_ id (e.g. both views name their title
+`page-title`), `id()`'s "ends with `--<value>`" suffix matching will find **both**: the currently
+visible one and the hidden previous one. Playwright's strict mode then correctly refuses to click
+or assert on an ambiguous multi-element locator rather than silently guessing.
+
+The fix is to use a longer, more specific id suffix that includes enough of the view's own id to
+disambiguate - e.g. `category--page-title` instead of just `page-title`. This framework's own
+example tests hit exactly this with `CategoryPage`'s `title`/`backButton` locators (both views in
+this demo app happen to name their title control `page-title`) - see the comment in
+[`examples/pages/CategoryPage.ts`](../examples/pages/CategoryPage.ts) for the real fix.
+
+If you're not sure how much of the id to include, the [Page Object generator](generator.md) shows
+you full ids for every control it finds - use enough of the suffix to make it unique to the view
+you mean.
+
 ## `waitForUi5` / `waitForUi5Core` times out on an app that I know is fine
 
 - Some apps genuinely never reach a fully idle network state (polling, websockets, analytics

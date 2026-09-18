@@ -165,6 +165,8 @@ more patterns, and [docs/auto-wait.md](auto-wait.md) for exactly what "settle" m
   locators that keep your tests passing when a primary strategy stops matching).
 - [docs/generator.md](generator.md) - point a CLI at your running app and get a starter Page
   Object generated from its actual control tree, instead of writing every locator by hand.
+- [docs/examples.md](examples.md) - a guided tour of every example test in this repo: form
+  filling, multi-step navigation, data-driven tests, network mocking, and more.
 - [docs/troubleshooting.md](troubleshooting.md) - if something doesn't work, check here first.
 
 ## 7. Run the examples in this repository
@@ -178,7 +180,9 @@ npx playwright install chromium
 npm test
 ```
 
-This runs [`examples/tests/cart.spec.ts`](../examples/tests/cart.spec.ts) against SAP's own
-public Shopping Cart SAPUI5 demo app. Read that file and
-[`examples/pages/CartPage.ts`](../examples/pages/CartPage.ts) alongside this guide - they're
-real, passing tests, not pseudocode.
+This runs all 7 files in [`examples/tests/`](../examples/tests/) against SAP's own public
+Shopping Cart SAPUI5 demo app - covering basic navigation, form filling, multi-step Page Object
+flows, data-driven tests, self-healing locators, network mocking, and state inspection. They're
+real, passing tests, not pseudocode; see [docs/examples.md](examples.md) for a guided tour of
+which file covers what, and read [`examples/pages/CartPage.ts`](../examples/pages/CartPage.ts)
+alongside this guide for the Page Object they're built on.

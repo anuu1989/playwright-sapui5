@@ -1,5 +1,6 @@
 import type { Page } from '@playwright/test';
 import { Ui5Locator, Ui5Page } from '../../src';
+import { CategoryPage } from './CategoryPage';
 
 const APP_URL = 'https://ui5.sap.com/test-resources/sap/m/demokit/cart/webapp/index.html';
 
@@ -46,7 +47,10 @@ export class CartPage extends Ui5Page {
     return this.controlType('sap.m.Button', { icon: 'sap-icon://cart-3' }).as('Add to cart button');
   }
 
-  async selectCategory(name: string): Promise<void> {
+  /** Clicks a category and returns a Page Object for the product list it navigates to - see
+   * docs/page-objects.md#composing-page-objects. */
+  async selectCategory(name: string): Promise<CategoryPage> {
     await this.category(name).click();
+    return new CategoryPage(this.page);
   }
 }
