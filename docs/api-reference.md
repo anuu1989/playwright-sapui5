@@ -11,8 +11,9 @@ Everything below is exported from the package root: `import { ... } from 'playwr
 ## `test`, `expect`
 
 Drop-in replacement for `@playwright/test`'s `test`/`expect`. Same API; the `page` fixture
-opportunistically calls `waitForUi5()` after each full page load. See
-[docs/getting-started.md](getting-started.md#3-your-first-test).
+opportunistically calls `waitForUi5()` after each full page load, and `expect` additionally has
+three custom UI5 matchers - see [docs/getting-started.md](getting-started.md#3-your-first-test)
+and [Custom matchers](#custom-expect-matchers) below.
 
 ## `ui5(page): object`
 
@@ -126,6 +127,26 @@ class Ui5Bridge {
     exact?: boolean,
   ): Promise<Ui5ControlInfo[]>;
   static async dumpControlTree(page: Page): Promise<Ui5ControlDump[]>;
+
+  // Advanced: exact-id lookups and scoped searches - back the custom matchers, Ui5Table, and
+  // Ui5Dialog. See docs/architecture.md.
+  static async getControlProperty(
+    page: Page,
+    id: string,
+    propertyName: string,
+  ): Promise<Ui5PropertyResult>;
+  static async getControlText(page: Page, id: string): Promise<Ui5TextResult>;
+  static async findDescendantControlsByType(
+    page: Page,
+    containerId: string,
+    type: string,
+  ): Promise<Ui5ControlInfo[]>;
+  static async getAggregation(
+    page: Page,
+    containerId: string,
+    aggregationName: string,
+  ): Promise<Ui5ControlInfo[]>;
+  static async findOpenPopups(page: Page): Promise<Ui5ControlInfo[]>;
 }
 ```
 
@@ -154,6 +175,89 @@ across your whole suite (e.g. to log them centrally). See
 Turns a `Ui5ControlDump[]` (from `Ui5Bridge.dumpControlTree`) into the source of a `Ui5Page`
 subclass. Used internally by the `pw-sapui5 generate` CLI - exposed in case you want to build your
 own tooling around it. See [docs/generator.md](generator.md).
+
+## Custom `expect` matchers
+
+Available on the `expect` this package exports (not on `@playwright/test`'s own). Each accepts a
+`Ui5Locator` or a plain Playwright `Locator`, auto-retries like Playwright's own built-in
+matchers, and supports `.not`.
+
+```ts
+expect(target: Ui5Locator | Locator).toHaveUi5Property(
+  propertyName: string,
+  expected: unknown,
+  options?: { timeout?: number },
+): Promise<void>;
+
+expect(target: Ui5Locator | Locator).toHaveUi5Text(
+  expected: string,
+  options?: { timeout?: number },
+): Promise<void>;
+
+expect(target: Ui5Locator | Locator).toBeUi5Busy(options?: { timeout?: number }): Promise<void>;
+```
+
+See [docs/expect-matchers.md](expect-matchers.md).
+
+## `Ui5Table`
+
+```ts
+class Ui5Table {
+  static async from(
+    tableLocator: Ui5Locator,
+    options?: { rowControlType?: string; timeout?: number },
+  ): Promise<Ui5Table>;
+
+  async rowCount(): Promise<number>;
+  async row(index: number): Promise<Locator>;
+  async rowContaining(text: string): Promise<Locator>;
+  async cellText(rowIndex: number, cellIndex: number): Promise<string>; // sap.m.Table only
+  async columnHeaders(): Promise<string[]>; // sap.m.Table only
+}
+```
+
+See [docs/ui5-table.md](ui5-table.md).
+
+## `Ui5Dialog`
+
+```ts
+class Ui5Dialog {
+  static async open(page: Page, options?: { timeout?: number }): Promise<Ui5Dialog>;
+
+  async title(): Promise<string>;
+  async button(text: string): Promise<Locator>;
+  async clickButton(text: string, options?: Parameters<Locator['click']>[0]): Promise<void>;
+  async waitForClose(options?: { timeout?: number }): Promise<void>;
+}
+```
+
+See [docs/ui5-dialog.md](ui5-dialog.md).
+
+## OData mocking
+
+```ts
+function mockODataCollection(
+  page: Page,
+  urlPattern: string | RegExp,
+  data: Record<string, unknown>[],
+  options?: { version?: 'v2' | 'v4'; status?: number },
+): Promise<void>;
+
+function mockODataEntity(
+  page: Page,
+  urlPattern: string | RegExp,
+  data: Record<string, unknown>,
+  options?: { version?: 'v2' | 'v4'; status?: number },
+): Promise<void>;
+
+function mockODataError(
+  page: Page,
+  urlPattern: string | RegExp,
+  options?: { version?: 'v2' | 'v4'; status?: number; code?: string; message?: string },
+): Promise<void>;
+```
+
+See [docs/odata-mocking.md](odata-mocking.md).
 
 ## Types
 
@@ -190,6 +294,31 @@ interface HealEvent {
 }
 
 type HealListener = (event: HealEvent) => void;
+
+interface Ui5PropertyResult {
+  found: boolean;
+  hasProperty: boolean;
+  value: unknown;
+}
+
+interface Ui5TextResult {
+  found: boolean;
+  value: string | undefined;
+}
+
+type ODataVersion = 'v2' | 'v4';
+
+interface MockODataCollectionOptions {
+  version?: ODataVersion;
+  status?: number;
+}
+
+interface MockODataErrorOptions {
+  version?: ODataVersion;
+  status?: number;
+  code?: string;
+  message?: string;
+}
 ```
 
 ## CLI: `pw-sapui5 generate`
@@ -198,4 +327,12 @@ See [docs/generator.md](generator.md) for full usage.
 
 ```bash
 npx pw-sapui5 generate --url <url> [--output <path>] [--class-name <name>] [--headed] [--timeout <ms>]
+```
+
+## CLI: `pw-sapui5 init`
+
+See [docs/init.md](init.md) for full usage.
+
+```bash
+npx pw-sapui5 init [--dir <path>] [--base-url <url>] [--force]
 ```

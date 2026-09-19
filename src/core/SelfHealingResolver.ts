@@ -1,5 +1,6 @@
 import type { Locator, Page } from '@playwright/test';
 import { Ui5Bridge } from './Ui5Bridge';
+import { idsSelector } from './domSelectors';
 import type { HealEvent, HealListener, Ui5ControlInfo, Ui5LocatorCriteria } from './types';
 
 /**
@@ -11,20 +12,12 @@ import type { HealEvent, HealListener, Ui5ControlInfo, Ui5LocatorCriteria } from
  */
 
 /**
- * Escapes a control id so it's safe to embed inside a CSS attribute selector's double quotes
- * (`[id="..."]`). Only `\` and `"` themselves need escaping here - SAPUI5 ids can contain `-`,
- * `_`, `.`, `:`, letters and digits, none of which are special inside a quoted attribute value.
- */
-function escapeAttrValue(value: string): string {
-  return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-}
-
-/**
  * Turns the plain-data matches the bridge found (`Ui5ControlInfo[]`, just `{ id, type }` pairs -
  * see `src/core/types.ts`) into one real Playwright `Locator`. This is the exact moment where
  * "a UI5 control the bridge found" becomes "a DOM element Playwright can act on" - by building a
- * CSS selector out of each match's `id`, on the assumption (true for the vast majority of SAPUI5
- * controls) that the control's own id equals the id attribute on its rendered root DOM element.
+ * CSS selector out of each match's `id` (via `idsSelector` - see `src/core/domSelectors.ts`), on
+ * the assumption (true for the vast majority of SAPUI5 controls) that the control's own id equals
+ * the id attribute on its rendered root DOM element.
  */
 function controlsToLocator(page: Page, matches: Ui5ControlInfo[]): Locator {
   if (matches.length === 0) {
@@ -35,11 +28,10 @@ function controlsToLocator(page: Page, matches: Ui5ControlInfo[]): Locator {
     // as you'd expect without any special-casing here or in `Ui5Locator`.
     return page.locator('[data-playwright-sapui5-no-match]');
   }
-  // `.map(...).join(', ')` - a comma-separated list of CSS selectors matches *any* of them
-  // (CSS's own "selector list" syntax), so multiple matching controls become one `Locator` that
-  // covers all of them at once. `Ui5Locator.click()`/etc. then narrow to one with `.first()`.
-  const selector = matches.map((m) => `[id="${escapeAttrValue(m.id)}"]`).join(', ');
-  return page.locator(selector);
+  // A comma-separated list of CSS selectors matches *any* of them (CSS's own "selector list"
+  // syntax), so multiple matching controls become one `Locator` that covers all of them at once.
+  // `Ui5Locator.click()`/etc. then narrow to one with `.first()`.
+  return page.locator(idsSelector(matches.map((m) => m.id)));
 }
 
 /**

@@ -16,6 +16,7 @@
     "node": ">=18"
   },
   "scripts": {
+    "setup": "bash setup.sh",
     "build": "npm run clean && tsc -p tsconfig.build.json",
     "clean": "rimraf dist",
     "lint": "eslint .",

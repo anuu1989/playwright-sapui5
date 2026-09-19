@@ -98,3 +98,23 @@ export interface HealEvent {
  * with a different signature to `onHeal`.
  */
 export type HealListener = (event: HealEvent) => void;
+
+/**
+ * The result of reading one property off a control by its exact id (`Ui5Bridge.getControlProperty`).
+ * Three separate booleans/fields rather than just returning the value (or `undefined`) directly:
+ * a missing control, a control with no such property, and a property whose real value happens to
+ * be `undefined`/`null` are three different situations, and the custom `expect` matchers in
+ * `src/core/matchers.ts` need to tell them apart to produce a genuinely useful failure message.
+ */
+export interface Ui5PropertyResult {
+  found: boolean;
+  hasProperty: boolean;
+  value: unknown;
+}
+
+/** The result of reading a control's visible text by its exact id (`Ui5Bridge.getControlText`) -
+ * see `Ui5PropertyResult` above for why this isn't just a plain `string | undefined`. */
+export interface Ui5TextResult {
+  found: boolean;
+  value: string | undefined;
+}

@@ -5,6 +5,13 @@
 // versions without it counting as a breaking change. If you're looking for where a symbol
 // actually lives, follow the `from '...'` path on its line below.
 
+// Importing this file (even without using anything it exports by name) is what makes the
+// `declare module '@playwright/test'` type augmentation inside it take effect for anyone who
+// imports from this package - see the comment at the bottom of `src/core/matchers.ts`. It's
+// already reached transitively (via `./fixtures/test`, exported below), but importing it
+// explicitly here means that stays true even if that internal path ever changes.
+import './core/matchers';
+
 export { Ui5Locator } from './core/Ui5Locator';
 // `export type { ... }` (as opposed to a plain `export { ... }`) re-exports something that only
 // exists at the type level - `Ui5ActionOptions` is an `interface`, erased entirely when compiled
@@ -16,9 +23,12 @@ export { Ui5Page } from './core/Ui5Page';
 export { ui5 } from './core/ui5';
 export { Ui5Bridge } from './core/Ui5Bridge';
 export { SelfHealingResolver } from './core/SelfHealingResolver';
+export { Ui5Table } from './core/Ui5Table';
+export { Ui5Dialog } from './core/Ui5Dialog';
 export { waitForUi5, waitForUi5Core } from './core/waits';
 export { test, expect } from './fixtures/test';
 export { generatePageObjectSource } from './generator/generatePageObjectSource';
+export { mockODataCollection, mockODataEntity, mockODataError } from './core/odataMock';
 export type {
   Ui5ControlDump,
   Ui5ControlInfo,
@@ -26,4 +36,11 @@ export type {
   WaitForUi5Options,
   HealEvent,
   HealListener,
+  Ui5PropertyResult,
+  Ui5TextResult,
 } from './core/types';
+export type {
+  ODataVersion,
+  MockODataCollectionOptions,
+  MockODataErrorOptions,
+} from './core/odataMock';

@@ -163,6 +163,10 @@ more patterns, and [docs/auto-wait.md](auto-wait.md) for exactly what "settle" m
   locators that keep your tests passing when a primary strategy stops matching).
 - [docs/generator.md](generator.md) - point a CLI at your running app and get a starter Page
   Object generated from its actual control tree, instead of writing every locator by hand.
+- [docs/expect-matchers.md](expect-matchers.md), [docs/ui5-table.md](ui5-table.md),
+  [docs/ui5-dialog.md](ui5-dialog.md) - three more advanced building blocks: assertions that read
+  a control's own live property values, table/list row and cell access, and reliable
+  dialog/popover interaction.
 - [docs/examples.md](examples.md) - a guided tour of every example test in this repo: form
   filling, multi-step navigation, data-driven tests, network mocking, and more.
 - [docs/troubleshooting.md](troubleshooting.md) - if something doesn't work, check here first.
@@ -170,7 +174,15 @@ more patterns, and [docs/auto-wait.md](auto-wait.md) for exactly what "settle" m
 ## 7. Run the examples in this repository
 
 If you cloned this repository itself (rather than just installing the npm package), you can run
-its example suite directly - no setup beyond Node and an internet connection:
+its example suite directly - no setup beyond Node and an internet connection. The easiest way is
+the included setup script, which also switches to a working Node version automatically (via
+`nvm`, if you have it) - see [step 1](#1-prerequisites) above for why that matters:
+
+```bash
+./setup.sh
+```
+
+Or run the same steps by hand:
 
 ```bash
 npm install
@@ -178,9 +190,11 @@ npx playwright install chromium
 npm test
 ```
 
-This runs all 7 files in [`examples/tests/`](../examples/tests/) against SAP's own public
-Shopping Cart SAPUI5 demo app - covering basic navigation, form filling, multi-step Page Object
-flows, data-driven tests, self-healing locators, network mocking, and state inspection. They're
-real, passing tests, not pseudocode; see [docs/examples.md](examples.md) for a guided tour of
-which file covers what, and read [`examples/pages/CartPage.ts`](../examples/pages/CartPage.ts)
+This runs all 13 files in [`examples/tests/`](../examples/tests/) against real, live public
+SAPUI5 demo apps (SAP's Shopping Cart demo, plus two official SAPUI5 SDK samples) - covering basic
+navigation, form filling, multi-step Page Object flows, data-driven tests, self-healing locators,
+network mocking, state inspection, accessibility, visual regression, custom UI5 matchers, tables,
+dialogs, and OData mocking. They're real, passing tests, not pseudocode; see
+[docs/examples.md](examples.md) for a guided tour of which file covers what, and read
+[`examples/pages/CartPage.ts`](../examples/pages/CartPage.ts)
 alongside this guide for the Page Object they're built on.

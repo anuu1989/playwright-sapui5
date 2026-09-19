@@ -1,5 +1,6 @@
-import { test as base, expect } from '@playwright/test';
+import { test as base, expect as baseExpect } from '@playwright/test';
 import { waitForUi5 } from '../core/waits';
+import { ui5Matchers } from '../core/matchers';
 
 /**
  * Drop-in replacement for `@playwright/test`'s `test`. The `page` fixture it provides
@@ -45,4 +46,10 @@ export const test = base.extend({
   },
 });
 
-export { expect };
+// `baseExpect.extend({ ... })` is the exact same mechanism as `base.extend({ ... })` above, just
+// for assertions instead of fixtures - it returns a new `expect` that behaves exactly like
+// Playwright's own for every built-in matcher (`toBeVisible`, `toHaveText`, ...), plus the three
+// new ones `ui5Matchers` adds (`toHaveUi5Property`, `toHaveUi5Text`, `toBeUi5Busy`) - see
+// docs/expect-matchers.md, and the type-level half of this in `src/core/matchers.ts`'s
+// `declare module '@playwright/test'` block.
+export const expect = baseExpect.extend(ui5Matchers);

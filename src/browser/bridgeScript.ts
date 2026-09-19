@@ -310,6 +310,131 @@ export function bridgeScript(): void {
       .map(toControlInfo);
   }
 
+  /** Finds `el` (any registered element, by exact id) among currently DOM-rendered controls -
+   * the shared lookup used by `getControlProperty`, `getControlText`, `findDescendantControlsByType`,
+   * and `getAggregation` below, all of which start from "the one control this exact id means." */
+  function findByExactId(id: string): any {
+    return getAllElements().find((el) => {
+      try {
+        return el.getId() === id;
+      } catch {
+        return false;
+      }
+    });
+  }
+
+  /**
+   * Reads one arbitrary property off a control found by exact id - the general-purpose backing
+   * implementation for the `toHaveUi5Property`/`toBeUi5Busy` matchers in `src/core/matchers.ts`.
+   * Returns a small result object (rather than just the value, or throwing) so the Node side can
+   * tell apart "control not found," "control has no such property," and "property is genuinely
+   * `undefined`/`null`" - three different situations that matter for a clear assertion failure
+   * message.
+   */
+  function getControlProperty(id: string, propertyName: string) {
+    const el = findByExactId(id);
+    if (!el) return { found: false, hasProperty: false, value: undefined };
+    const getter = 'get' + propertyName.charAt(0).toUpperCase() + propertyName.slice(1);
+    if (typeof el[getter] !== 'function')
+      return { found: true, hasProperty: false, value: undefined };
+    try {
+      return { found: true, hasProperty: true, value: el[getter]() };
+    } catch {
+      return { found: true, hasProperty: false, value: undefined };
+    }
+  }
+
+  /** Same "found by exact id" lookup as `getControlProperty`, but tries every `TEXT_GETTERS`
+   * candidate in turn (like `findControlsByText` does when searching) instead of requiring the
+   * caller to know which specific property holds a given control's visible text. Backs the
+   * `toHaveUi5Text` matcher. */
+  function getControlText(id: string) {
+    const el = findByExactId(id);
+    if (!el) return { found: false, value: undefined };
+    for (const getter of TEXT_GETTERS) {
+      if (typeof el[getter] !== 'function') continue;
+      try {
+        const val = el[getter]();
+        if (typeof val === 'string') return { found: true, value: val };
+      } catch {
+        // try the next getter
+      }
+    }
+    return { found: true, value: undefined };
+  }
+
+  /**
+   * Every currently-rendered control of `type`, nested anywhere inside the DOM subtree of the
+   * control with exact id `containerId` - a "scoped" version of `findControlsByType` that only
+   * looks within one specific control instead of the whole page. This is what lets `Ui5Table`
+   * find "the rows of *this* table" (not every row of every table on the page) and `Ui5Dialog`
+   * find "the buttons in *this* open dialog" (not every same-labeled button elsewhere on the
+   * page) - see `src/core/Ui5Table.ts` and `src/core/Ui5Dialog.ts`.
+   */
+  function findDescendantControlsByType(containerId: string, type: string) {
+    const container = findByExactId(containerId);
+    const containerDom = container ? container.getDomRef() : null;
+    if (!containerDom) return [];
+    return getAllElements()
+      .filter((el) => {
+        if (controlType(el) !== type) return false;
+        try {
+          const dom = el.getDomRef();
+          // `Node.contains(other)` is a standard DOM method: true if `other` is `dom` itself or
+          // nested anywhere inside it. Excluding `containerDom === dom` guards against a control
+          // somehow matching its own container (shouldn't normally happen, since a container and
+          // its own rows/buttons are different controls with different types, but cheap to guard).
+          return !!dom && dom !== containerDom && containerDom.contains(dom);
+        } catch {
+          return false;
+        }
+      })
+      .map(toControlInfo);
+  }
+
+  /**
+   * Reads one of a control's own *aggregations* (SAPUI5's term for a property that holds other
+   * controls, e.g. a `sap.m.Table`'s `columns`, or a `sap.m.ColumnListItem`'s `cells`) by exact
+   * container id and aggregation name, and returns the `{ id, type }` of whatever controls it
+   * currently holds. Unlike `findDescendantControlsByType` above, this reads the aggregation
+   * directly - useful for things like column headers, which are always fully present regardless
+   * of what's scrolled into view, unlike rows in a `growing`-enabled table.
+   */
+  function getAggregation(containerId: string, aggregationName: string) {
+    const container = findByExactId(containerId);
+    if (!container) return [];
+    const getter = 'get' + aggregationName.charAt(0).toUpperCase() + aggregationName.slice(1);
+    if (typeof container[getter] !== 'function') return [];
+    let result: any;
+    try {
+      result = container[getter]();
+    } catch {
+      return [];
+    }
+    const items = Array.isArray(result) ? result : result ? [result] : [];
+    return items.filter((item: any) => item && typeof item.getId === 'function').map(toControlInfo);
+  }
+
+  /**
+   * Every currently-rendered control that reports itself as open right now, via SAPUI5's own
+   * `isOpen()` method - both `sap.m.Dialog` and `sap.m.Popover` (and anything else that happens
+   * to implement the same method) are covered by this one check, with no need to enumerate
+   * specific control type names. Backs `Ui5Dialog`'s "wait for something to open" logic - see
+   * `src/core/Ui5Dialog.ts`.
+   */
+  function findOpenPopups() {
+    return getAllElements()
+      .filter((el) => {
+        if (typeof el.isOpen !== 'function') return false;
+        try {
+          return el.isOpen();
+        } catch {
+          return false;
+        }
+      })
+      .map(toControlInfo);
+  }
+
   /** Is the app "busy" right now, by any of three independent signals? Used directly by
    * `Ui5Bridge.isBusy()`, and as one half of `isSettled()` below. */
   function isBusy(): boolean {
@@ -432,4 +557,9 @@ export function bridgeScript(): void {
   bridge.findControlsByBindingPath = findControlsByBindingPath;
   bridge.findControlsByText = findControlsByText;
   bridge.dumpControlTree = dumpControlTree;
+  bridge.getControlProperty = getControlProperty;
+  bridge.getControlText = getControlText;
+  bridge.findDescendantControlsByType = findDescendantControlsByType;
+  bridge.getAggregation = getAggregation;
+  bridge.findOpenPopups = findOpenPopups;
 }

@@ -49,12 +49,17 @@ Everything under `src/` is small and single-purpose on purpose - no file does mo
 | [`src/core/types.ts`](../src/core/types.ts)                                                 | Shared TypeScript types only - no runtime code. `Ui5LocatorCriteria`, `Ui5ControlInfo`, etc.                                                                                                                      |
 | [`src/core/Ui5Locator.ts`](../src/core/Ui5Locator.ts)                                       | The locator class: static factories (`.id`, `.controlType`, ...), chaining (`.fallback`, `.as`), and the convenience action methods (`.click`, `.fill`, ...).                                                     |
 | [`src/core/SelfHealingResolver.ts`](../src/core/SelfHealingResolver.ts)                     | Turns a _list_ of strategies into one Playwright `Locator`, trying each in order until one matches. This is where self-healing actually happens.                                                                  |
-| [`src/core/Ui5Bridge.ts`](../src/core/Ui5Bridge.ts)                                         | The Node-side half of the bridge: injects the browser script exactly once per `Page`, and exposes typed async methods that call into it.                                                                          |
+| [`src/core/Ui5Bridge.ts`](../src/core/Ui5Bridge.ts)                                         | The Node-side half of the bridge: injects the browser script exactly once per `Page` (race-condition-safe - see [below](#a-real-concurrency-bug-this-caught)), and exposes typed async methods that call into it. |
 | [`src/core/waits.ts`](../src/core/waits.ts)                                                 | `waitForUi5Core` and `waitForUi5` - the two auto-wait primitives everything else is built on.                                                                                                                     |
 | [`src/core/Ui5Page.ts`](../src/core/Ui5Page.ts)                                             | The `abstract class` Page Objects extend. Thin wrappers around `Ui5Locator`'s factories, plus `goto()`.                                                                                                           |
 | [`src/core/ui5.ts`](../src/core/ui5.ts)                                                     | The `ui5(page)` fluent helper - a plain function returning an object of closures over `Ui5Locator`'s factories.                                                                                                   |
+| [`src/core/domSelectors.ts`](../src/core/domSelectors.ts)                                   | Tiny shared helpers (`idSelector`, `idsSelector`) for building `[id="..."]` CSS selectors from control ids - used by `SelfHealingResolver`, `Ui5Table`, and `Ui5Dialog`.                                          |
+| [`src/core/matchers.ts`](../src/core/matchers.ts)                                           | The custom `expect` matchers (`toHaveUi5Property`, `toHaveUi5Text`, `toBeUi5Busy`) and the TypeScript module augmentation that makes them type-check. See [docs/expect-matchers.md](expect-matchers.md).          |
+| [`src/core/Ui5Table.ts`](../src/core/Ui5Table.ts)                                           | Row/cell/header access for `sap.m.Table`/`sap.m.List`. See [docs/ui5-table.md](ui5-table.md).                                                                                                                     |
+| [`src/core/Ui5Dialog.ts`](../src/core/Ui5Dialog.ts)                                         | Open/interact-with/close helpers for `sap.m.Dialog`/`sap.m.Popover`. See [docs/ui5-dialog.md](ui5-dialog.md).                                                                                                     |
+| [`src/core/odataMock.ts`](../src/core/odataMock.ts)                                         | `page.route()` wrappers that build correct OData V2/V4 JSON envelopes. See [docs/odata-mocking.md](odata-mocking.md). No bridge involvement - plain Playwright network interception.                              |
 | [`src/browser/bridgeScript.ts`](../src/browser/bridgeScript.ts)                             | **The only file that touches SAPUI5's own runtime.** Plain browser JavaScript, authored in a `.ts` file for type-checking convenience - see [The browser bridge, in detail](#the-browser-bridge-in-detail) below. |
-| [`src/fixtures/test.ts`](../src/fixtures/test.ts)                                           | The `test`/`expect` you import instead of `@playwright/test`'s own - a thin `test.extend()` wrapper.                                                                                                              |
+| [`src/fixtures/test.ts`](../src/fixtures/test.ts)                                           | The `test`/`expect` you import instead of `@playwright/test`'s own - a thin `test.extend()` wrapper, `expect.extend()`ed with `matchers.ts`'s custom matchers.                                                    |
 | [`src/generator/generatePageObjectSource.ts`](../src/generator/generatePageObjectSource.ts) | Pure function: takes a control-tree dump, returns TypeScript source text for a Page Object. No I/O.                                                                                                               |
 | [`src/generator/initCommand.ts`](../src/generator/initCommand.ts)                           | The file-writing logic behind `pw-sapui5 init` - also pure-ish (takes options, writes files, returns a report).                                                                                                   |
 | [`src/generator/cli.ts`](../src/generator/cli.ts)                                           | The actual CLI entry point. Thin - it parses arguments (via `commander`) and calls into the two generator files above and `Ui5Bridge`/`waits`.                                                                    |
@@ -251,12 +256,65 @@ What it does, in order, the first time it runs on a fresh document:
 7. **Defines `dumpControlTree()`**, used only by the [generator](#the-generate-cli-flow) - like
    the `findControlsBy*` functions, but returns every control (not filtered by a query) with a
    few extra fields (`properties`, `parentId`) the generator uses for naming and comments.
-8. **Attaches everything it wants Node to be able to call** onto the `bridge` object:
-   `bridge.isCoreReady`, `bridge.isBusy`, `bridge.isSettled`, `bridge.findControlsById`, etc.
+8. **Defines five more functions for the "advanced feature" building blocks**: `getControlProperty`
+   and `getControlText` (exact-id lookups, backing the [custom matchers](expect-matchers.md)),
+   `findDescendantControlsByType` and `getAggregation` (scoped/aggregation-based searches, backing
+   [`Ui5Table`](ui5-table.md) and [`Ui5Dialog`](ui5-dialog.md)), and `findOpenPopups` (anything
+   with `isOpen() === true`, backing `Ui5Dialog.open()`).
+9. **Attaches everything it wants Node to be able to call** onto the `bridge` object:
+   `bridge.isCoreReady`, `bridge.isBusy`, `bridge.isSettled`, `bridge.findControlsById`, and all of
+   the above.
 
 Every method that later "calls into the bridge" from Node - `Ui5Bridge.isBusy()`,
 `resolveCriteria()`'s `waitForFunction` predicate, and so on - is just reading one of these
 properties off `window.__pwSapUi5__` inside a `page.evaluate`/`page.waitForFunction` callback.
+
+## A real concurrency bug this caught
+
+While building `Ui5Dialog`, a test that navigated directly (`page.goto(url)`, not through
+`Ui5Page.goto()`) and then immediately called `Ui5Dialog.open(page, ...)` failed intermittently
+with `Cannot read properties of undefined (reading 'findOpenPopups')` - `window.__pwSapUi5__`
+genuinely didn't exist yet at the moment it was read. Worth walking through, because the root
+cause is a general lesson about async code, not something specific to dialogs.
+
+`Ui5Bridge.ensure()` is called defensively from many places - `Ui5Locator`, `waitForUi5`,
+`Ui5Page.goto()`, and this framework's own `test` fixture's `page.on('load', ...)` listener (see
+[`src/fixtures/test.ts`](../src/fixtures/test.ts)) - often without anything waiting for one
+caller's `ensure()` to finish before another starts. The original implementation tracked "has this
+`Page` been set up" with a `WeakSet<Page>` flag:
+
+```ts
+// the buggy version
+if (initializedPages.has(page)) return;
+initializedPages.add(page); // <- marked "done" here...
+await page.addInitScript(bridgeScript);
+await page.evaluate(bridgeScript); // <- ...before this actually finished
+```
+
+The bug: `initializedPages.add(page)` runs _synchronously_, before either `await` below it. If a
+second call to `ensure()` for the same `page` happened while the first was still in the middle of
+those two `await`s - exactly what the `page.on('load')` listener's fire-and-forget `waitForUi5`
+call racing against a test's own immediate next line produces - it would see the flag already set
+and return immediately, letting code that assumed the bridge was ready run against a document
+where it wasn't there yet.
+
+The fix ([`src/core/Ui5Bridge.ts`](../src/core/Ui5Bridge.ts)) stores the _Promise_ of the
+installation, not just a boolean, in a `WeakMap<Page, Promise<void>>`:
+
+```ts
+let installation = bridgeInstallations.get(page);
+if (!installation) {
+  installation = installBridge(page); // starts the work AND is stored, in the same tick
+  bridgeInstallations.set(page, installation);
+}
+await installation; // every caller - first or concurrent - awaits the same real completion
+```
+
+Now every caller, whenever they call `ensure()`, either starts the one-and-only installation or
+finds the _same in-flight Promise_ already stored and awaits its actual completion - there's no
+window where a second caller can observe "started" as if it meant "finished." This is a common
+enough pattern worth recognizing: whenever you're deduplicating concurrent async work with a
+cache, cache the `Promise`, not a boolean derived from having started it.
 
 ## Test execution flow: what happens when you run `npx playwright test`
 

@@ -22,9 +22,14 @@ asynchronously as data binds and routes change, and shows/hides busy indicators 
   Object class from its live control tree.
 - **A project scaffolding CLI** (`pw-sapui5 init`) that sets up a whole runnable project - config,
   example test, editor setup - in one command.
+- **Custom `expect` matchers** (`toHaveUi5Property`, `toHaveUi5Text`, `toBeUi5Busy`) that read a
+  control's own live property values through the bridge, not just its rendered DOM text.
+- **`Ui5Table`** and **`Ui5Dialog`** - higher-level helpers for the two things every real Fiori
+  test suite ends up hand-rolling: row/cell access on tables and lists, and reliably opening,
+  interacting with, and closing dialogs.
 - Documented, real-example-backed recipes for **accessibility testing**, **visual regression
-  testing**, **multi-environment configuration**, and **authentication** - see the docs table
-  below.
+  testing**, **multi-environment configuration**, **authentication**, and **OData mocking** - see
+  the docs table below.
 
 It's a plain npm library - install it in any Playwright project (or several) and import what you
 need; nothing about it is tied to this repository's example app.
@@ -100,12 +105,16 @@ export class CartPage extends Ui5Page {
 | [docs/locators.md](docs/locators.md)                                 | Every locator strategy, the `ui5()` helper, self-healing, fallback chains                                                                     |
 | [docs/auto-wait.md](docs/auto-wait.md)                               | How auto-waiting works, tuning timeouts, when it can't help you                                                                               |
 | [docs/page-objects.md](docs/page-objects.md)                         | The `Ui5Page` pattern, structuring a real test suite                                                                                          |
+| [docs/expect-matchers.md](docs/expect-matchers.md)                   | Custom `expect` matchers that read live UI5 control properties                                                                                |
+| [docs/ui5-table.md](docs/ui5-table.md)                               | `Ui5Table` - row/cell access, headers, for `sap.m.Table`/`sap.m.List`                                                                         |
+| [docs/ui5-dialog.md](docs/ui5-dialog.md)                             | `Ui5Dialog` - opening, interacting with, and closing dialogs/popovers reliably                                                                |
 | [docs/examples.md](docs/examples.md)                                 | A guided tour of every example test - search, self-healing, data-driven tests, network mocking, and more                                      |
 | [docs/generator.md](docs/generator.md)                               | The `pw-sapui5 generate` CLI, options, and its limits                                                                                         |
 | [docs/multi-environment-config.md](docs/multi-environment-config.md) | Pointing tests at dev/QA/prod via env vars instead of hardcoded URLs                                                                          |
 | [docs/authentication.md](docs/authentication.md)                     | Logging in once and reusing the session across tests                                                                                          |
 | [docs/accessibility.md](docs/accessibility.md)                       | Accessibility testing with axe-core                                                                                                           |
 | [docs/visual-testing.md](docs/visual-testing.md)                     | Screenshot-based visual regression testing, and its platform gotcha                                                                           |
+| [docs/odata-mocking.md](docs/odata-mocking.md)                       | Mocking OData V2/V4 responses with the correct JSON envelope shapes                                                                           |
 | [docs/api-reference.md](docs/api-reference.md)                       | Every exported class, function, and type                                                                                                      |
 | [docs/troubleshooting.md](docs/troubleshooting.md)                   | Common errors and how to fix them                                                                                                             |
 
@@ -113,12 +122,13 @@ export class CartPage extends Ui5Page {
 
 ```
 src/               the library itself (what gets published to npm)
-  core/            Ui5Locator, Ui5Page, Ui5Bridge, SelfHealingResolver, waitForUi5, types
+  core/            Ui5Locator, Ui5Page, Ui5Bridge, SelfHealingResolver, Ui5Table, Ui5Dialog,
+                   matchers, odataMock, waitForUi5, types
   browser/         the script injected into the browser to talk to SAPUI5's control tree
-  fixtures/        a Playwright test/expect drop-in with a small auto-wait boost
+  fixtures/        a Playwright test/expect drop-in with a small auto-wait boost + custom matchers
   generator/       the Page Object generator + its CLI
   index.ts         public exports
-examples/          a full, runnable example test suite (against a real public SAPUI5 demo app)
+examples/          a full, runnable example test suite (against real public SAPUI5 demo apps)
 docs/              the documentation listed above
 ```
 
@@ -132,17 +142,33 @@ docs/              the documentation listed above
 ## Try the examples in this repo
 
 ```bash
+./setup.sh
+```
+
+One command: checks your Node version (switching via `nvm` automatically if it's too old and
+`nvm` is installed - see [docs/troubleshooting.md](docs/troubleshooting.md#old-nodejs-patch-versions)
+for why this matters), installs dependencies, installs Playwright's Chromium browser, builds,
+lints, and type-checks the library, then runs the example suite. `npm run setup` works too. Skip
+straight to a specific piece with `./setup.sh --skip-checks` or `./setup.sh --skip-tests` - see
+`./setup.sh --help`.
+
+Prefer to run the steps yourself, or don't have bash (Windows outside WSL/Git Bash)? Same result,
+by hand:
+
+```bash
 npm install
 npx playwright install chromium
 npm test
 ```
 
-This runs all 9 files in [`examples/tests/`](examples/tests/) - covering basic navigation, form
+This runs all 13 files in [`examples/tests/`](examples/tests/) - covering basic navigation, form
 filling, multi-step Page Object flows, data-driven tests, self-healing locators, network mocking,
-state inspection, accessibility, and visual regression - against SAP's own public Shopping Cart
-SAPUI5 demo app, so no setup beyond an internet connection is needed. (The visual regression test
-skips itself outside macOS - see [docs/visual-testing.md](docs/visual-testing.md#platform-sensitivity).)
-See [docs/examples.md](docs/examples.md) for a guided tour of which file covers what.
+state inspection, accessibility, visual regression, custom UI5 matchers, tables, dialogs, and
+OData mocking - against real, live public SAPUI5 demo apps (SAP's Shopping Cart demo, plus two
+official samples from the SAPUI5 SDK itself), so no setup beyond an internet connection is needed.
+(The visual regression test skips itself outside macOS - see
+[docs/visual-testing.md](docs/visual-testing.md#platform-sensitivity).) See
+[docs/examples.md](docs/examples.md) for a guided tour of which file covers what.
 
 ## License
 
