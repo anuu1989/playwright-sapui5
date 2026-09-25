@@ -1,5 +1,6 @@
-import type { Locator, Page } from '@playwright/test';
+import type { Locator } from '@playwright/test';
 import { SelfHealingResolver } from './SelfHealingResolver';
+import type { Ui5Target } from './Ui5Bridge';
 import { waitForUi5 } from './waits';
 import type { Ui5LocatorCriteria } from './types';
 
@@ -48,7 +49,7 @@ export class Ui5Locator {
   // TypeScript/Java-style pattern) that keeps every `Ui5Locator` guaranteed to start from a valid
   // primary strategy, since the factories are the only code path that can call `new`.
   private constructor(
-    private readonly page: Page,
+    private readonly target: Ui5Target,
     primary: Ui5LocatorCriteria,
   ) {
     this.strategies.push(primary);
@@ -61,33 +62,38 @@ export class Ui5Locator {
   // `static` means you call these on the *class itself* (`Ui5Locator.id(...)`), not on an
   // instance - there's no `Ui5Locator` to call a method on yet, since building one is the whole
   // point of calling a factory.
+  //
+  // `target` accepts a `Page` or a `Frame` (see `Ui5Target` in `src/core/Ui5Bridge.ts`) - pass a
+  // `Frame` (e.g. one found with `findUi5Frame()`) to build a locator scoped to one specific
+  // iframe, such as an embedded app loaded inside a Fiori Launchpad shell. See
+  // docs/cross-frame.md.
 
   /** Matches a control whose id equals, or ends with `--<value>` (view-scoped id suffix). */
-  static id(page: Page, value: string, options: { exact?: boolean } = {}): Ui5Locator {
-    return new Ui5Locator(page, { by: 'id', value, exact: options.exact });
+  static id(target: Ui5Target, value: string, options: { exact?: boolean } = {}): Ui5Locator {
+    return new Ui5Locator(target, { by: 'id', value, exact: options.exact });
   }
 
   /** Matches by full UI5 control type name (e.g. `sap.m.Button`), optionally filtered by property values. */
   static controlType(
-    page: Page,
+    target: Ui5Target,
     controlType: string,
     properties?: Record<string, unknown>,
   ): Ui5Locator {
-    return new Ui5Locator(page, { by: 'controlType', controlType, properties });
+    return new Ui5Locator(target, { by: 'controlType', controlType, properties });
   }
 
   /** Matches a control whose binding context path equals `path`. */
-  static bindingPath(page: Page, path: string, controlType?: string): Ui5Locator {
-    return new Ui5Locator(page, { by: 'bindingPath', path, controlType });
+  static bindingPath(target: Ui5Target, path: string, controlType?: string): Ui5Locator {
+    return new Ui5Locator(target, { by: 'bindingPath', path, controlType });
   }
 
   /** Matches by visible text/title/value/label (whichever the control exposes). */
   static text(
-    page: Page,
+    target: Ui5Target,
     text: string,
     options: { controlType?: string; exact?: boolean } = {},
   ): Ui5Locator {
-    return new Ui5Locator(page, {
+    return new Ui5Locator(target, {
       by: 'text',
       text,
       controlType: options.controlType,
@@ -96,13 +102,13 @@ export class Ui5Locator {
   }
 
   /** Escape hatch: matches by a plain CSS selector, still benefiting from auto-wait and healing. */
-  static css(page: Page, selector: string): Ui5Locator {
-    return new Ui5Locator(page, { by: 'css', selector });
+  static css(target: Ui5Target, selector: string): Ui5Locator {
+    return new Ui5Locator(target, { by: 'css', selector });
   }
 
   /** Escape hatch: matches by ARIA role, via Playwright's own `getByRole`. */
-  static role(page: Page, role: string, name?: string): Ui5Locator {
-    return new Ui5Locator(page, { by: 'role', role, name });
+  static role(target: Ui5Target, role: string, name?: string): Ui5Locator {
+    return new Ui5Locator(target, { by: 'role', role, name });
   }
 
   // --- Chaining --------------------------------------------------------------------------------
@@ -139,7 +145,7 @@ export class Ui5Locator {
    * the factory + any `.fallback()` calls) plus the timeout/label options.
    */
   async resolve(options: { timeout?: number } = {}): Promise<Locator> {
-    return SelfHealingResolver.resolve(this.page, this.strategies, {
+    return SelfHealingResolver.resolve(this.target, this.strategies, {
       timeout: options.timeout,
       label: this.label,
     });
@@ -157,7 +163,7 @@ export class Ui5Locator {
       // swallow that error and continue anyway, rather than failing the whole action just
       // because of a background wait that's "best-effort" by design. The action itself
       // (`.click()`, etc.) will still fail on its own if the element genuinely isn't there.
-      await waitForUi5(this.page, { timeout: options.timeout }).catch(() => {
+      await waitForUi5(this.target, { timeout: options.timeout }).catch(() => {
         /* best-effort: don't fail the action just because busy-state never settled */
       });
     }

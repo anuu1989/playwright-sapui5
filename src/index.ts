@@ -22,10 +22,17 @@ export type { Ui5ActionOptions } from './core/Ui5Locator';
 export { Ui5Page } from './core/Ui5Page';
 export { ui5 } from './core/ui5';
 export { Ui5Bridge } from './core/Ui5Bridge';
+export type { Ui5Target } from './core/Ui5Bridge';
 export { SelfHealingResolver } from './core/SelfHealingResolver';
 export { Ui5Table } from './core/Ui5Table';
 export { Ui5Dialog } from './core/Ui5Dialog';
+export { Ui5SmartFilterBar } from './core/Ui5SmartFilterBar';
+export { Ui5SmartTable } from './core/Ui5SmartTable';
+export { Ui5GridTable } from './core/Ui5GridTable';
+export { Ui5ValueHelpDialog } from './core/Ui5ValueHelpDialog';
 export { waitForUi5, waitForUi5Core } from './core/waits';
+export { findUi5Frame } from './core/findUi5Frame';
+export type { FindUi5FrameOptions } from './core/findUi5Frame';
 export { test, expect } from './fixtures/test';
 export { generatePageObjectSource } from './generator/generatePageObjectSource';
 export { mockODataCollection, mockODataEntity, mockODataError } from './core/odataMock';
@@ -38,6 +45,10 @@ export type {
   HealListener,
   Ui5PropertyResult,
   Ui5TextResult,
+  Ui5BridgeActionResult,
+  Ui5FilterDataResult,
+  Ui5SmartTableInfo,
+  Ui5GridTableInfo,
 } from './core/types';
 export type {
   ODataVersion,

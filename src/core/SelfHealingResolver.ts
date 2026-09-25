@@ -1,5 +1,5 @@
-import type { Locator, Page } from '@playwright/test';
-import { Ui5Bridge } from './Ui5Bridge';
+import type { Locator } from '@playwright/test';
+import { Ui5Bridge, type Ui5Target } from './Ui5Bridge';
 import { idsSelector } from './domSelectors';
 import type { HealEvent, HealListener, Ui5ControlInfo, Ui5LocatorCriteria } from './types';
 
@@ -19,19 +19,18 @@ import type { HealEvent, HealListener, Ui5ControlInfo, Ui5LocatorCriteria } from
  * the assumption (true for the vast majority of SAPUI5 controls) that the control's own id equals
  * the id attribute on its rendered root DOM element.
  */
-function controlsToLocator(page: Page, matches: Ui5ControlInfo[]): Locator {
-  if (matches.length === 0) {
-    // No matches: rather than return `null`/`undefined` and force every caller to handle that
-    // separately, this returns a `Locator` built from a selector that can structurally never
-    // match anything on any real page. That keeps the return type a plain `Locator` in every
-    // case, and lets `.count()` (0) and `.waitFor()` (behaves like "never found") work exactly
-    // as you'd expect without any special-casing here or in `Ui5Locator`.
-    return page.locator('[data-playwright-sapui5-no-match]');
-  }
-  // A comma-separated list of CSS selectors matches *any* of them (CSS's own "selector list"
-  // syntax), so multiple matching controls become one `Locator` that covers all of them at once.
-  // `Ui5Locator.click()`/etc. then narrow to one with `.first()`.
-  return page.locator(idsSelector(matches.map((m) => m.id)));
+function controlsToLocator(target: Ui5Target, matches: Ui5ControlInfo[]): Locator {
+  // `idsSelector([])` (zero matches) already returns a selector that can structurally never match
+  // anything on any real page, rather than an empty/invalid one - see `src/core/domSelectors.ts`.
+  // That keeps the return type a plain `Locator` in every case, and lets `.count()` (0) and
+  // `.waitFor()` (behaves like "never found") work exactly as you'd expect without any
+  // special-casing here or in `Ui5Locator`. A comma-separated list of CSS selectors matches *any*
+  // of them (CSS's own "selector list" syntax) when there's more than one match, so multiple
+  // matching controls become one `Locator` that covers all of them at once - `Ui5Locator.click()`/
+  // etc. then narrow to one with `.first()`. `target.locator(...)` works identically whether
+  // `target` is the top-level `Page` or one specific `Frame` - the returned `Locator` is scoped to
+  // whichever one it was built from.
+  return target.locator(idsSelector(matches.map((m) => m.id)));
 }
 
 /**
@@ -40,7 +39,7 @@ function controlsToLocator(page: Page, matches: Ui5ControlInfo[]): Locator {
  * lives one level up, in `SelfHealingResolver.resolve()`'s `for` loop below.
  */
 async function resolveCriteria(
-  page: Page,
+  target: Ui5Target,
   criteria: Ui5LocatorCriteria,
   timeoutMs: number,
 ): Promise<Locator> {
@@ -50,13 +49,13 @@ async function resolveCriteria(
   // directly in Node, because they're plain Playwright locators with no need to involve the
   // SAPUI5 bridge at all.
   if (criteria.by === 'css') {
-    const locator = page.locator(criteria.selector);
+    const locator = target.locator(criteria.selector);
     await locator.first().waitFor({ state: 'attached', timeout: timeoutMs });
     return locator;
   }
 
   if (criteria.by === 'role') {
-    const locator = page.getByRole(criteria.role as Parameters<Page['getByRole']>[0], {
+    const locator = target.getByRole(criteria.role as Parameters<Ui5Target['getByRole']>[0], {
       name: criteria.name,
     });
     await locator.first().waitFor({ state: 'attached', timeout: timeoutMs });
@@ -64,9 +63,9 @@ async function resolveCriteria(
   }
 
   // Every other strategy (`id`, `controlType`, `bindingPath`, `text`) needs the bridge script to
-  // actually read SAPUI5's control registry - `Ui5Bridge.ensure()` installs it if this `Page`
+  // actually read SAPUI5's control registry - `Ui5Bridge.ensure()` installs it if this target
   // hasn't seen it yet (a no-op otherwise, see `src/core/Ui5Bridge.ts`).
-  await Ui5Bridge.ensure(page);
+  await Ui5Bridge.ensure(target);
 
   const deadline = Date.now() + timeoutMs;
   let matches: Ui5ControlInfo[] = [];
@@ -82,7 +81,7 @@ async function resolveCriteria(
   // same Node/browser boundary as plain JSON - which is exactly why `criteria` can only contain
   // simple, serializable values (strings, numbers, booleans, plain objects), never functions or
   // class instances.
-  const handle = await page.waitForFunction(
+  const handle = await target.waitForFunction(
     (args) => {
       // Everything inside this arrow function runs in the browser. `(window as any).__pwSapUi5__`
       // is the bridge object `bridgeScript()` set up (see `src/browser/bridgeScript.ts`) - `as
@@ -122,7 +121,7 @@ async function resolveCriteria(
   matches = (await handle.jsonValue()) as Ui5ControlInfo[];
   await handle.dispose();
 
-  return controlsToLocator(page, matches);
+  return controlsToLocator(target, matches);
 }
 
 export class SelfHealingResolver {
@@ -160,7 +159,7 @@ export class SelfHealingResolver {
    * The overall `timeout` budget is split evenly across strategies. Throws if all fail.
    */
   static async resolve(
-    page: Page,
+    target: Ui5Target,
     strategies: Ui5LocatorCriteria[],
     options: { timeout?: number; label?: string } = {},
   ): Promise<Locator> {
@@ -181,7 +180,7 @@ export class SelfHealingResolver {
     // fallback) as well as the value.
     for (let i = 0; i < strategies.length; i++) {
       try {
-        const locator = await resolveCriteria(page, strategies[i], perStrategyTimeout);
+        const locator = await resolveCriteria(target, strategies[i], perStrategyTimeout);
         // `resolveCriteria` can return successfully with zero matches in one specific case: the
         // `'css'`/`'role'` branches' own `waitFor({ state: 'attached' })` could theoretically
         // resolve just as the element detaches again. This check catches that edge case and

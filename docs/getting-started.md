@@ -167,6 +167,14 @@ more patterns, and [docs/auto-wait.md](auto-wait.md) for exactly what "settle" m
   [docs/ui5-dialog.md](ui5-dialog.md) - three more advanced building blocks: assertions that read
   a control's own live property values, table/list row and cell access, and reliable
   dialog/popover interaction.
+- [docs/cross-frame.md](cross-frame.md) - testing a SAPUI5 app embedded in an iframe, the way
+  Fiori Launchpad (and similar shell apps) load their tiles.
+- [docs/smart-controls.md](smart-controls.md) - `Ui5SmartFilterBar`/`Ui5SmartTable`, for
+  Fiori Elements apps whose filter bar and result table are generated from OData metadata.
+- [docs/ui5-grid-table.md](ui5-grid-table.md) - `Ui5GridTable`, for `sap.ui.table.Table`'s
+  virtualized rows (a plain `sap.m.Table` uses [`Ui5Table`](ui5-table.md) instead).
+- [docs/value-help-dialog.md](value-help-dialog.md) - `Ui5ValueHelpDialog`, for opening and
+  selecting from a value help ("F4 help") dialog.
 - [docs/examples.md](examples.md) - a guided tour of every example test in this repo: form
   filling, multi-step navigation, data-driven tests, network mocking, and more.
 - [docs/troubleshooting.md](troubleshooting.md) - if something doesn't work, check here first.
@@ -190,11 +198,12 @@ npx playwright install chromium
 npm test
 ```
 
-This runs all 13 files in [`examples/tests/`](../examples/tests/) against real, live public
-SAPUI5 demo apps (SAP's Shopping Cart demo, plus two official SAPUI5 SDK samples) - covering basic
+This runs all 17 files in [`examples/tests/`](../examples/tests/) against real, live public
+SAPUI5 demo apps (SAP's Shopping Cart demo, plus official SAPUI5 SDK samples) - covering basic
 navigation, form filling, multi-step Page Object flows, data-driven tests, self-healing locators,
 network mocking, state inspection, accessibility, visual regression, custom UI5 matchers, tables,
-dialogs, and OData mocking. They're real, passing tests, not pseudocode; see
+dialogs, OData mocking, testing an app embedded in an iframe, SmartFilterBar/SmartTable, grid
+tables, and value help dialogs. They're real, passing tests, not pseudocode; see
 [docs/examples.md](examples.md) for a guided tour of which file covers what, and read
 [`examples/pages/CartPage.ts`](../examples/pages/CartPage.ts)
 alongside this guide for the Page Object they're built on.

@@ -118,3 +118,51 @@ export interface Ui5TextResult {
   found: boolean;
   value: string | undefined;
 }
+
+/**
+ * The result of an action the bridge performed by calling a method directly on a control (e.g.
+ * `Ui5Bridge.triggerSmartFilterBarSearch`, `Ui5Bridge.setSmartFilterBarData`) rather than reading
+ * one. `found: false` means no control with that id exists (or it doesn't have the method being
+ * called - e.g. a `setFilterData` call against a control that isn't actually a `SmartFilterBar`);
+ * `ok: false` with `found: true` means the control exists and has the method, but calling it threw.
+ */
+export interface Ui5BridgeActionResult {
+  found: boolean;
+  ok: boolean;
+  error?: string;
+}
+
+/** The result of reading a `sap.ui.comp.smartfilterbar.SmartFilterBar`'s current filter values
+ * (`Ui5Bridge.getSmartFilterBarData`) - see `Ui5PropertyResult` above for why this isn't just a
+ * plain `Record<string, unknown> | undefined`. */
+export interface Ui5FilterDataResult {
+  found: boolean;
+  value: Record<string, unknown> | undefined;
+}
+
+/**
+ * The result of reading a `sap.ui.comp.smarttable.SmartTable`'s inner table and row count
+ * (`Ui5Bridge.getSmartTableInfo`) - see `src/core/Ui5SmartTable.ts`. `innerTable` is `null` when
+ * the `SmartTable` hasn't built its inner table yet (e.g. before its first `search()`/data load);
+ * `rowCount` is `undefined` when the inner table exists but its binding hasn't loaded data yet, or
+ * doesn't expose a length the way `getBinding('rows')`/`getBinding('items')` normally do.
+ */
+export interface Ui5SmartTableInfo {
+  found: boolean;
+  innerTable: Ui5ControlInfo | null;
+  rowCount: number | undefined;
+}
+
+/**
+ * The result of reading a `sap.ui.table.Table`'s (the "grid" table control) virtualized row state
+ * (`Ui5Bridge.getGridTableInfo`) - see `src/core/Ui5GridTable.ts`. `renderedRows` is only the
+ * subset of the control's pooled row elements that currently hold real data (see the comment on
+ * `getGridTableInfo` in `src/browser/bridgeScript.ts` for why that's not always the whole pool);
+ * `rowCount`/`firstVisibleRow` are `undefined` if the control hasn't bound any data yet.
+ */
+export interface Ui5GridTableInfo {
+  found: boolean;
+  rowCount: number | undefined;
+  firstVisibleRow: number | undefined;
+  renderedRows: Ui5ControlInfo[];
+}

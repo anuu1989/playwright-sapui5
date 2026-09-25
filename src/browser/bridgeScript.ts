@@ -416,6 +416,169 @@ export function bridgeScript(): void {
   }
 
   /**
+   * Sets several filter values at once on a `sap.ui.comp.smartfilterbar.SmartFilterBar`, via its
+   * own `setFilterData(data)` method - the SAPUI5-native way to fill filters, sidestepping the
+   * usual pain of automating a SmartFilterBar entirely: its fields are generated dynamically from
+   * OData metadata/annotations, so the *widget type* behind any given field (`DatePicker`,
+   * `MultiInput`, `ComboBox`, `Switch`, a `DateRangeType` pair, ...) isn't something a test should
+   * have to know or special-case. `data`'s shape is `{ propertyName: value }`, matching whatever
+   * `getSmartFilterBarData()` below reads back. Backs `Ui5SmartFilterBar.setFilterData()` - see
+   * `src/core/Ui5SmartFilterBar.ts`.
+   */
+  function setSmartFilterBarData(id: string, data: Record<string, unknown>) {
+    const el = findByExactId(id);
+    if (!el || typeof el.setFilterData !== 'function') return { found: false, ok: false };
+    try {
+      el.setFilterData(data);
+      return { found: true, ok: true };
+    } catch (e) {
+      return { found: true, ok: false, error: e instanceof Error ? e.message : String(e) };
+    }
+  }
+
+  /** Reads a SmartFilterBar's current filter values, in the same `{ propertyName: value }` shape
+   * `setSmartFilterBarData` accepts - the read half of the pair above. */
+  function getSmartFilterBarData(id: string) {
+    const el = findByExactId(id);
+    if (!el || typeof el.getFilterData !== 'function') return { found: false, value: undefined };
+    try {
+      return { found: true, value: el.getFilterData() };
+    } catch {
+      return { found: true, value: undefined };
+    }
+  }
+
+  /**
+   * Triggers a SmartFilterBar's search directly via its own `search()` method - equivalent to
+   * clicking its "Go" button, without needing to find that button (whose visible label is
+   * localized, and whose id is auto-generated same as everything else on this control). Backs
+   * `Ui5SmartFilterBar.search()`.
+   */
+  function triggerSmartFilterBarSearch(id: string) {
+    const el = findByExactId(id);
+    if (!el || typeof el.search !== 'function') return { found: false, ok: false };
+    try {
+      el.search();
+      return { found: true, ok: true };
+    } catch (e) {
+      return { found: true, ok: false, error: e instanceof Error ? e.message : String(e) };
+    }
+  }
+
+  /**
+   * Reads a `sap.ui.comp.smarttable.SmartTable`'s inner table (via its own `getTable()` method,
+   * which returns whichever concrete table control it built - `sap.m.Table` *or*
+   * `sap.ui.table.Table`, depending on configuration/annotations, decided at runtime, not
+   * something a test can assume ahead of time) together with that table's *true* row count, read
+   * from its own data binding (`getBinding('rows')` for a grid table, `getBinding('items')` for a
+   * response table) rather than counted from the DOM. That distinction is what makes this usable
+   * for a `sap.ui.table.Table`-backed SmartTable specifically: a grid table only ever renders a
+   * small virtualized "window" of its bound rows, so counting rendered DOM rows there would badly
+   * undercount a real result set. Backs `Ui5SmartTable`.
+   */
+  function getSmartTableInfo(id: string) {
+    const el = findByExactId(id);
+    if (!el || typeof el.getTable !== 'function') {
+      return { found: false, innerTable: null, rowCount: undefined };
+    }
+    let table: any;
+    try {
+      table = el.getTable();
+    } catch {
+      table = null;
+    }
+    if (!table) return { found: true, innerTable: null, rowCount: undefined };
+    let binding: any;
+    try {
+      binding =
+        typeof table.getBinding === 'function'
+          ? table.getBinding('rows') || table.getBinding('items')
+          : null;
+    } catch {
+      binding = null;
+    }
+    let rowCount: number | undefined;
+    try {
+      rowCount =
+        binding && typeof binding.getLength === 'function' ? binding.getLength() : undefined;
+    } catch {
+      rowCount = undefined;
+    }
+    return { found: true, innerTable: toControlInfo(table), rowCount };
+  }
+
+  /**
+   * Reads the state needed to interact with a `sap.ui.table.Table` (the "grid" table control) -
+   * the DOM ids of its currently-*rendered* rows, plus the numbers needed to know which data
+   * indices those rows actually correspond to right now. This control **virtualizes** its rows:
+   * it keeps a small, fixed pool of `<tr>` elements (sized by `getVisibleRowCount()`) and re-binds
+   * them to different data rows as the table scrolls, rather than rendering one DOM row per data
+   * row the way `sap.m.Table` does. That's what makes "the id of row N" a moving target here -
+   * unlike `Ui5Table`, which can find a row by a stable DOM search - so this returns the *current*
+   * mapping (via `getFirstVisibleRow()`) for the Node side to work out which of the pooled row
+   * elements, if any, holds a given data index right now. Backs `Ui5GridTable` - see
+   * `src/core/Ui5GridTable.ts` and docs/ui5-grid-table.md.
+   */
+  function getGridTableInfo(id: string) {
+    const el = findByExactId(id);
+    if (!el || typeof el.getRows !== 'function') {
+      return { found: false, rowCount: undefined, firstVisibleRow: undefined, renderedRows: [] };
+    }
+    let rows: any[] = [];
+    try {
+      rows = el.getRows();
+    } catch {
+      rows = [];
+    }
+    let rowCount: number | undefined;
+    try {
+      const binding = typeof el.getBinding === 'function' ? el.getBinding('rows') : null;
+      rowCount =
+        binding && typeof binding.getLength === 'function' ? binding.getLength() : undefined;
+    } catch {
+      rowCount = undefined;
+    }
+    let firstVisibleRow: number | undefined;
+    try {
+      firstVisibleRow =
+        typeof el.getFirstVisibleRow === 'function' ? el.getFirstVisibleRow() : undefined;
+    } catch {
+      firstVisibleRow = undefined;
+    }
+    // Of the pooled row elements, only the first `rowCount - firstVisibleRow` (clamped to the
+    // pool size) actually hold real data right now - the rest are rendered but empty, sitting
+    // past the end of the bound data (exactly what the earlier ValueHelpDialog exploration in
+    // this session found: an 8-row pool showing only 4 real rows). Computed arithmetically here,
+    // rather than by checking each row's own binding context, so it stays correct even if a
+    // future UI5 version changes what an "empty" pooled row's binding context looks like.
+    const realCount =
+      typeof rowCount === 'number' && typeof firstVisibleRow === 'number'
+        ? Math.max(0, Math.min(rows.length, rowCount - firstVisibleRow))
+        : rows.length;
+    const renderedRows = rows.slice(0, realCount).map(toControlInfo);
+    return { found: true, rowCount, firstVisibleRow, renderedRows };
+  }
+
+  /**
+   * Scrolls a `sap.ui.table.Table` so that data row `rowIndex` becomes one of its currently
+   * rendered rows, via the control's own `setFirstVisibleRow(rowIndex)` method - the same API
+   * SAPUI5 itself uses for programmatic scrolling (e.g. "scroll to selection"). This is what lets
+   * `Ui5GridTable` reach a row beyond whatever's rendered by default, without simulating mouse
+   * wheel/scrollbar events against a control that manages its own virtualized rendering. Backs
+   * `Ui5GridTable.scrollToRow()`.
+   */
+  function scrollGridTableToRow(id: string, rowIndex: number) {
+    const el = findByExactId(id);
+    if (!el || typeof el.setFirstVisibleRow !== 'function') return { found: false, ok: false };
+    try {
+      el.setFirstVisibleRow(rowIndex);
+      return { found: true, ok: true };
+    } catch (e) {
+      return { found: true, ok: false, error: e instanceof Error ? e.message : String(e) };
+    }
+  }
+
+  /**
    * Every currently-rendered control that reports itself as open right now, via SAPUI5's own
    * `isOpen()` method - both `sap.m.Dialog` and `sap.m.Popover` (and anything else that happens
    * to implement the same method) are covered by this one check, with no need to enumerate
@@ -546,9 +709,9 @@ export function bridgeScript(): void {
   // Finally: attach every function Node needs to be able to call onto `bridge` (which is already
   // `window.__pwSapUi5__` at this point, assigned near the top of this function). Everything
   // above this line was either instrumentation (fetch/XHR) or a helper function definition that
-  // only exists to be called by another helper, or by one of these eight lines - nothing outside
+  // only exists to be called by another helper, or by one of the lines below - nothing outside
   // this function, in Node, ever calls `getAllElements()`, `controlType()`, `matchesProperties()`,
-  // etc. directly; it only ever reaches these eight, by name, through `window.__pwSapUi5__.<name>`.
+  // etc. directly; it only ever reaches these, by name, through `window.__pwSapUi5__.<name>`.
   bridge.isCoreReady = () => !!getCore();
   bridge.isBusy = isBusy;
   bridge.isSettled = isSettled;
@@ -562,4 +725,10 @@ export function bridgeScript(): void {
   bridge.findDescendantControlsByType = findDescendantControlsByType;
   bridge.getAggregation = getAggregation;
   bridge.findOpenPopups = findOpenPopups;
+  bridge.setSmartFilterBarData = setSmartFilterBarData;
+  bridge.getSmartFilterBarData = getSmartFilterBarData;
+  bridge.triggerSmartFilterBarSearch = triggerSmartFilterBarSearch;
+  bridge.getSmartTableInfo = getSmartTableInfo;
+  bridge.getGridTableInfo = getGridTableInfo;
+  bridge.scrollGridTableToRow = scrollGridTableToRow;
 }

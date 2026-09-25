@@ -43,26 +43,31 @@ flowchart LR
 
 Everything under `src/` is small and single-purpose on purpose - no file does more than one job.
 
-| File                                                                                        | What it does                                                                                                                                                                                                      |
-| ------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`src/index.ts`](../src/index.ts)                                                           | The public API surface. Everything a consumer can `import { ... } from 'playwright-sapui5'` is re-exported here, and nothing else is reachable from outside the package.                                          |
-| [`src/core/types.ts`](../src/core/types.ts)                                                 | Shared TypeScript types only - no runtime code. `Ui5LocatorCriteria`, `Ui5ControlInfo`, etc.                                                                                                                      |
-| [`src/core/Ui5Locator.ts`](../src/core/Ui5Locator.ts)                                       | The locator class: static factories (`.id`, `.controlType`, ...), chaining (`.fallback`, `.as`), and the convenience action methods (`.click`, `.fill`, ...).                                                     |
-| [`src/core/SelfHealingResolver.ts`](../src/core/SelfHealingResolver.ts)                     | Turns a _list_ of strategies into one Playwright `Locator`, trying each in order until one matches. This is where self-healing actually happens.                                                                  |
-| [`src/core/Ui5Bridge.ts`](../src/core/Ui5Bridge.ts)                                         | The Node-side half of the bridge: injects the browser script exactly once per `Page` (race-condition-safe - see [below](#a-real-concurrency-bug-this-caught)), and exposes typed async methods that call into it. |
-| [`src/core/waits.ts`](../src/core/waits.ts)                                                 | `waitForUi5Core` and `waitForUi5` - the two auto-wait primitives everything else is built on.                                                                                                                     |
-| [`src/core/Ui5Page.ts`](../src/core/Ui5Page.ts)                                             | The `abstract class` Page Objects extend. Thin wrappers around `Ui5Locator`'s factories, plus `goto()`.                                                                                                           |
-| [`src/core/ui5.ts`](../src/core/ui5.ts)                                                     | The `ui5(page)` fluent helper - a plain function returning an object of closures over `Ui5Locator`'s factories.                                                                                                   |
-| [`src/core/domSelectors.ts`](../src/core/domSelectors.ts)                                   | Tiny shared helpers (`idSelector`, `idsSelector`) for building `[id="..."]` CSS selectors from control ids - used by `SelfHealingResolver`, `Ui5Table`, and `Ui5Dialog`.                                          |
-| [`src/core/matchers.ts`](../src/core/matchers.ts)                                           | The custom `expect` matchers (`toHaveUi5Property`, `toHaveUi5Text`, `toBeUi5Busy`) and the TypeScript module augmentation that makes them type-check. See [docs/expect-matchers.md](expect-matchers.md).          |
-| [`src/core/Ui5Table.ts`](../src/core/Ui5Table.ts)                                           | Row/cell/header access for `sap.m.Table`/`sap.m.List`. See [docs/ui5-table.md](ui5-table.md).                                                                                                                     |
-| [`src/core/Ui5Dialog.ts`](../src/core/Ui5Dialog.ts)                                         | Open/interact-with/close helpers for `sap.m.Dialog`/`sap.m.Popover`. See [docs/ui5-dialog.md](ui5-dialog.md).                                                                                                     |
-| [`src/core/odataMock.ts`](../src/core/odataMock.ts)                                         | `page.route()` wrappers that build correct OData V2/V4 JSON envelopes. See [docs/odata-mocking.md](odata-mocking.md). No bridge involvement - plain Playwright network interception.                              |
-| [`src/browser/bridgeScript.ts`](../src/browser/bridgeScript.ts)                             | **The only file that touches SAPUI5's own runtime.** Plain browser JavaScript, authored in a `.ts` file for type-checking convenience - see [The browser bridge, in detail](#the-browser-bridge-in-detail) below. |
-| [`src/fixtures/test.ts`](../src/fixtures/test.ts)                                           | The `test`/`expect` you import instead of `@playwright/test`'s own - a thin `test.extend()` wrapper, `expect.extend()`ed with `matchers.ts`'s custom matchers.                                                    |
-| [`src/generator/generatePageObjectSource.ts`](../src/generator/generatePageObjectSource.ts) | Pure function: takes a control-tree dump, returns TypeScript source text for a Page Object. No I/O.                                                                                                               |
-| [`src/generator/initCommand.ts`](../src/generator/initCommand.ts)                           | The file-writing logic behind `pw-sapui5 init` - also pure-ish (takes options, writes files, returns a report).                                                                                                   |
-| [`src/generator/cli.ts`](../src/generator/cli.ts)                                           | The actual CLI entry point. Thin - it parses arguments (via `commander`) and calls into the two generator files above and `Ui5Bridge`/`waits`.                                                                    |
+| File                                                                                        | What it does                                                                                                                                                                                                                                                                                      |
+| ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`src/index.ts`](../src/index.ts)                                                           | The public API surface. Everything a consumer can `import { ... } from 'playwright-sapui5'` is re-exported here, and nothing else is reachable from outside the package.                                                                                                                          |
+| [`src/core/types.ts`](../src/core/types.ts)                                                 | Shared TypeScript types only - no runtime code. `Ui5LocatorCriteria`, `Ui5ControlInfo`, etc.                                                                                                                                                                                                      |
+| [`src/core/Ui5Locator.ts`](../src/core/Ui5Locator.ts)                                       | The locator class: static factories (`.id`, `.controlType`, ...), chaining (`.fallback`, `.as`), and the convenience action methods (`.click`, `.fill`, ...).                                                                                                                                     |
+| [`src/core/SelfHealingResolver.ts`](../src/core/SelfHealingResolver.ts)                     | Turns a _list_ of strategies into one Playwright `Locator`, trying each in order until one matches. This is where self-healing actually happens.                                                                                                                                                  |
+| [`src/core/Ui5Bridge.ts`](../src/core/Ui5Bridge.ts)                                         | The Node-side half of the bridge: injects the browser script exactly once per target (`Page` _or_ `Frame` - see [`Ui5Target`](#cross-frame-page-or-frame-everywhere), race-condition-safe - see [below](#a-real-concurrency-bug-this-caught)), and exposes typed async methods that call into it. |
+| [`src/core/waits.ts`](../src/core/waits.ts)                                                 | `waitForUi5Core` and `waitForUi5` - the two auto-wait primitives everything else is built on.                                                                                                                                                                                                     |
+| [`src/core/Ui5Page.ts`](../src/core/Ui5Page.ts)                                             | The `abstract class` Page Objects extend. Thin wrappers around `Ui5Locator`'s factories, plus `goto()`. `Page`-only by design - see [docs/cross-frame.md](cross-frame.md#page-objects-and-frames).                                                                                                |
+| [`src/core/ui5.ts`](../src/core/ui5.ts)                                                     | The `ui5(target)` fluent helper - a plain function returning an object of closures over `Ui5Locator`'s factories.                                                                                                                                                                                 |
+| [`src/core/findUi5Frame.ts`](../src/core/findUi5Frame.ts)                                   | Locates the child iframe (if any) with its own ready SAPUI5 runtime - for Fiori Launchpad-style shells. See [docs/cross-frame.md](cross-frame.md).                                                                                                                                                |
+| [`src/core/domSelectors.ts`](../src/core/domSelectors.ts)                                   | Tiny shared helpers (`idSelector`, `idsSelector`) for building `[id="..."]` CSS selectors from control ids - used by `SelfHealingResolver`, `Ui5Table`, and `Ui5Dialog`.                                                                                                                          |
+| [`src/core/matchers.ts`](../src/core/matchers.ts)                                           | The custom `expect` matchers (`toHaveUi5Property`, `toHaveUi5Text`, `toBeUi5Busy`) and the TypeScript module augmentation that makes them type-check. See [docs/expect-matchers.md](expect-matchers.md).                                                                                          |
+| [`src/core/Ui5Table.ts`](../src/core/Ui5Table.ts)                                           | Row/cell/header access for `sap.m.Table`/`sap.m.List`. See [docs/ui5-table.md](ui5-table.md).                                                                                                                                                                                                     |
+| [`src/core/Ui5Dialog.ts`](../src/core/Ui5Dialog.ts)                                         | Open/interact-with/close helpers for `sap.m.Dialog`/`sap.m.Popover`. See [docs/ui5-dialog.md](ui5-dialog.md).                                                                                                                                                                                     |
+| [`src/core/Ui5SmartFilterBar.ts`](../src/core/Ui5SmartFilterBar.ts)                         | Set filter values and search on a Fiori Elements SmartFilterBar via its own API. See [docs/smart-controls.md](smart-controls.md).                                                                                                                                                                 |
+| [`src/core/Ui5SmartTable.ts`](../src/core/Ui5SmartTable.ts)                                 | True row count and inner-table type for a Fiori Elements SmartTable. See [docs/smart-controls.md](smart-controls.md).                                                                                                                                                                             |
+| [`src/core/Ui5GridTable.ts`](../src/core/Ui5GridTable.ts)                                   | Row/cell/header access for `sap.ui.table.Table`'s virtualized rows, including `scrollToRow()`. See [docs/ui5-grid-table.md](ui5-grid-table.md).                                                                                                                                                   |
+| [`src/core/Ui5ValueHelpDialog.ts`](../src/core/Ui5ValueHelpDialog.ts)                       | Opens a value help ("F4 help") dialog via its `-vhi` trigger icon and selects a result row. See [docs/value-help-dialog.md](value-help-dialog.md).                                                                                                                                                |
+| [`src/core/odataMock.ts`](../src/core/odataMock.ts)                                         | `page.route()` wrappers that build correct OData V2/V4 JSON envelopes. See [docs/odata-mocking.md](odata-mocking.md). No bridge involvement - plain Playwright network interception.                                                                                                              |
+| [`src/browser/bridgeScript.ts`](../src/browser/bridgeScript.ts)                             | **The only file that touches SAPUI5's own runtime.** Plain browser JavaScript, authored in a `.ts` file for type-checking convenience - see [The browser bridge, in detail](#the-browser-bridge-in-detail) below.                                                                                 |
+| [`src/fixtures/test.ts`](../src/fixtures/test.ts)                                           | The `test`/`expect` you import instead of `@playwright/test`'s own - a thin `test.extend()` wrapper, `expect.extend()`ed with `matchers.ts`'s custom matchers.                                                                                                                                    |
+| [`src/generator/generatePageObjectSource.ts`](../src/generator/generatePageObjectSource.ts) | Pure function: takes a control-tree dump, returns TypeScript source text for a Page Object. No I/O.                                                                                                                                                                                               |
+| [`src/generator/initCommand.ts`](../src/generator/initCommand.ts)                           | The file-writing logic behind `pw-sapui5 init` - also pure-ish (takes options, writes files, returns a report).                                                                                                                                                                                   |
+| [`src/generator/cli.ts`](../src/generator/cli.ts)                                           | The actual CLI entry point. Thin - it parses arguments (via `commander`) and calls into the two generator files above and `Ui5Bridge`/`waits`.                                                                                                                                                    |
 
 ## Flow 1: what `Ui5Page.goto(url)` actually does
 
@@ -315,6 +320,58 @@ finds the _same in-flight Promise_ already stored and awaits its actual completi
 window where a second caller can observe "started" as if it meant "finished." This is a common
 enough pattern worth recognizing: whenever you're deduplicating concurrent async work with a
 cache, cache the `Promise`, not a boolean derived from having started it.
+
+## Cross-frame: Page or Frame everywhere
+
+Everything traced above is described in terms of a `Page`, but `Ui5Bridge`, `waitForUi5Core`/
+`waitForUi5`, `Ui5Locator`'s static factories, and `ui5(...)` are actually all typed to accept a
+`Ui5Target`:
+
+```ts
+// src/core/Ui5Bridge.ts
+export type Ui5Target = Page | Frame;
+```
+
+This exists for one specific scenario: a SAPUI5 app embedded inside an `<iframe>`, the way Fiori
+Launchpad loads each tile's target app. That app's control tree lives in a different Playwright
+`Frame` than the shell around it - see [docs/cross-frame.md](cross-frame.md) for the full guide
+and [`examples/tests/cross-frame.spec.ts`](../examples/tests/cross-frame.spec.ts) for a complete
+working example.
+
+It works at all because `Page` and `Frame` share the exact same `.evaluate()`,
+`.waitForFunction()`, `.locator()`, and `.getByRole()` methods this file's `installBridge`,
+`resolveCriteria`, and `controlsToLocator` (all traced above) actually call - none of that code
+needed to change, only its parameter types. The one method that genuinely differs is
+`page.addInitScript()`, which only exists on `Page`. `Ui5Bridge.ensure(target)` handles this with a
+small helper:
+
+```ts
+function ownerPage(target: Ui5Target): Page {
+  const maybeFrame = target as Frame;
+  return typeof maybeFrame.page === 'function' ? maybeFrame.page() : (target as Page);
+}
+```
+
+`Frame` has a `.page()` method returning the `Page` that owns it; `Page` has no such method - that
+asymmetry is the only way, at runtime, to tell which one was passed in. `installBridge` then does
+two things: registers the init script on the _owning_ `Page` (`ownerPage(target).addInitScript(...)`,
+covering every current and future frame on that page automatically), and separately calls
+`target.evaluate(bridgeScript)` for the specific target passed in (in case that frame's document
+already finished loading before `ensure()` was called - `addInitScript` only affects _future_
+navigations, never a document that's already there).
+
+`findUi5Frame(page, options?)` ([`src/core/findUi5Frame.ts`](../src/core/findUi5Frame.ts)) is the
+piece that finds the right `Frame` to pass in: it polls every frame on `page` other than the main
+frame, calling `Ui5Bridge.isCoreReady(frame)` on each, and returns the first one that's ready. The
+main frame is deliberately excluded - in a real launchpad, the shell itself is a SAPUI5 app too, so
+including it would usually just find the shell again.
+
+`Ui5Page` stays `Page`-only on purpose - see
+[docs/cross-frame.md#page-objects-and-frames](cross-frame.md#page-objects-and-frames) for why - and
+the custom `expect` matchers, `Ui5Table`, and `Ui5Dialog` aren't frame-aware yet, because they all
+go through `Locator.page()` internally, which always returns the top-level `Page` regardless of
+which frame the locator was actually built from. See
+[docs/cross-frame.md#current-limitations](cross-frame.md#current-limitations).
 
 ## Test execution flow: what happens when you run `npx playwright test`
 

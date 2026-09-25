@@ -27,6 +27,18 @@ asynchronously as data binds and routes change, and shows/hides busy indicators 
 - **`Ui5Table`** and **`Ui5Dialog`** - higher-level helpers for the two things every real Fiori
   test suite ends up hand-rolling: row/cell access on tables and lists, and reliably opening,
   interacting with, and closing dialogs.
+- **Cross-iframe support** - locators, auto-wait, and the bridge all work against a Playwright
+  `Frame`, not just the top-level `Page`, so apps embedded in an iframe (the way Fiori Launchpad
+  loads a tile) are just as testable as a standalone app. `findUi5Frame()` locates the right one.
+- **`Ui5SmartFilterBar`** and **`Ui5SmartTable`** - set filter values and search on a Fiori
+  Elements SmartFilterBar without hand-matching each dynamically-generated field's widget type,
+  and read a SmartTable's true row count even when it's backed by a virtualized grid table.
+- **`Ui5GridTable`** - row/cell/header access and true row counts for `sap.ui.table.Table`, the
+  separate virtualized "grid" table control `Ui5Table` doesn't cover, including scrolling to a
+  specific row on demand via the control's own API.
+- **`Ui5ValueHelpDialog`** - opens a value help ("F4 help") dialog via its undocumented trigger
+  icon convention and selects a result row, whether the dialog's result list turns out to be a
+  `sap.m.Table`/`List` or a virtualized `sap.ui.table.Table`.
 - Documented, real-example-backed recipes for **accessibility testing**, **visual regression
   testing**, **multi-environment configuration**, **authentication**, and **OData mocking** - see
   the docs table below.
@@ -108,6 +120,10 @@ export class CartPage extends Ui5Page {
 | [docs/expect-matchers.md](docs/expect-matchers.md)                   | Custom `expect` matchers that read live UI5 control properties                                                                                |
 | [docs/ui5-table.md](docs/ui5-table.md)                               | `Ui5Table` - row/cell access, headers, for `sap.m.Table`/`sap.m.List`                                                                         |
 | [docs/ui5-dialog.md](docs/ui5-dialog.md)                             | `Ui5Dialog` - opening, interacting with, and closing dialogs/popovers reliably                                                                |
+| [docs/cross-frame.md](docs/cross-frame.md)                           | Testing a SAPUI5 app embedded in an iframe (Fiori Launchpad and similar shells)                                                               |
+| [docs/smart-controls.md](docs/smart-controls.md)                     | `Ui5SmartFilterBar`/`Ui5SmartTable` - Fiori Elements' generated filter bar and result table                                                   |
+| [docs/ui5-grid-table.md](docs/ui5-grid-table.md)                     | `Ui5GridTable` - row/cell/header access for `sap.ui.table.Table`, the virtualized grid table                                                  |
+| [docs/value-help-dialog.md](docs/value-help-dialog.md)               | `Ui5ValueHelpDialog` - opening and selecting from a value help ("F4 help") dialog                                                             |
 | [docs/examples.md](docs/examples.md)                                 | A guided tour of every example test - search, self-healing, data-driven tests, network mocking, and more                                      |
 | [docs/generator.md](docs/generator.md)                               | The `pw-sapui5 generate` CLI, options, and its limits                                                                                         |
 | [docs/multi-environment-config.md](docs/multi-environment-config.md) | Pointing tests at dev/QA/prod via env vars instead of hardcoded URLs                                                                          |
@@ -123,7 +139,8 @@ export class CartPage extends Ui5Page {
 ```
 src/               the library itself (what gets published to npm)
   core/            Ui5Locator, Ui5Page, Ui5Bridge, SelfHealingResolver, Ui5Table, Ui5Dialog,
-                   matchers, odataMock, waitForUi5, types
+                   Ui5SmartFilterBar, Ui5SmartTable, Ui5GridTable, Ui5ValueHelpDialog, matchers,
+                   odataMock, waitForUi5, findUi5Frame, types
   browser/         the script injected into the browser to talk to SAPUI5's control tree
   fixtures/        a Playwright test/expect drop-in with a small auto-wait boost + custom matchers
   generator/       the Page Object generator + its CLI
@@ -161,11 +178,12 @@ npx playwright install chromium
 npm test
 ```
 
-This runs all 13 files in [`examples/tests/`](examples/tests/) - covering basic navigation, form
+This runs all 17 files in [`examples/tests/`](examples/tests/) - covering basic navigation, form
 filling, multi-step Page Object flows, data-driven tests, self-healing locators, network mocking,
-state inspection, accessibility, visual regression, custom UI5 matchers, tables, dialogs, and
-OData mocking - against real, live public SAPUI5 demo apps (SAP's Shopping Cart demo, plus two
-official samples from the SAPUI5 SDK itself), so no setup beyond an internet connection is needed.
+state inspection, accessibility, visual regression, custom UI5 matchers, tables, dialogs, OData
+mocking, testing an app embedded in an iframe, SmartFilterBar/SmartTable, grid tables, and value
+help dialogs - against real, live public SAPUI5 demo apps (SAP's Shopping Cart demo, plus official
+samples from the SAPUI5 SDK itself), so no setup beyond an internet connection is needed.
 (The visual regression test skips itself outside macOS - see
 [docs/visual-testing.md](docs/visual-testing.md#platform-sensitivity).) See
 [docs/examples.md](docs/examples.md) for a guided tour of which file covers what.
