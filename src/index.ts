@@ -30,6 +30,12 @@ export { Ui5SmartFilterBar } from './core/Ui5SmartFilterBar';
 export { Ui5SmartTable } from './core/Ui5SmartTable';
 export { Ui5GridTable } from './core/Ui5GridTable';
 export { Ui5ValueHelpDialog } from './core/Ui5ValueHelpDialog';
+export { Ui5I18n } from './core/Ui5I18n';
+export { Ui5Model } from './core/Ui5Model';
+export { Ui5MessageToast } from './core/Ui5MessageToast';
+export { Ui5Messages } from './core/Ui5Messages';
+export { Ui5Select } from './core/Ui5Select';
+export { Ui5DatePicker } from './core/Ui5DatePicker';
 export { waitForUi5, waitForUi5Core } from './core/waits';
 export { findUi5Frame } from './core/findUi5Frame';
 export type { FindUi5FrameOptions } from './core/findUi5Frame';
@@ -49,6 +55,14 @@ export type {
   Ui5FilterDataResult,
   Ui5SmartTableInfo,
   Ui5GridTableInfo,
+  Ui5I18nResult,
+  Ui5ModelPropertyResult,
+  Ui5BindingContextResult,
+  Ui5MessageToastRecord,
+  Ui5MessageInfo,
+  Ui5SelectItem,
+  Ui5SelectInfo,
+  Ui5DatePickerValue,
 } from './core/types';
 export type {
   ODataVersion,

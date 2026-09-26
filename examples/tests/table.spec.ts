@@ -16,6 +16,13 @@ test.describe('Ui5Table', () => {
   test('row count, column headers, and cell text', async ({ page }) => {
     await page.goto(TABLE_SAMPLE_URL);
 
+    // Waiting for a real row before wrapping the table: `Ui5Table.from()` only waits for the
+    // table's own root element, not for its rows' data to arrive, so reading `rowCount()`
+    // straight after it can catch an empty table. This passed for a long time and then started
+    // failing only under heavy parallel load - see
+    // docs/troubleshooting.md#an-auto-detected-row-type-turns-out-to-be-wrong-immediately-after-navigation
+    // for the same gotcha in its more confusing form.
+    await ui5(page).controlType('sap.m.ColumnListItem').waitFor({ timeout: 15000 });
     const table = await Ui5Table.from(ui5(page).controlType('sap.m.Table'));
 
     expect(await table.rowCount()).toBeGreaterThan(0);

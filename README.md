@@ -39,6 +39,16 @@ asynchronously as data binds and routes change, and shows/hides busy indicators 
 - **`Ui5ValueHelpDialog`** - opens a value help ("F4 help") dialog via its undocumented trigger
   icon convention and selects a result row, whether the dialog's result list turns out to be a
   `sap.m.Table`/`List` or a virtualized `sap.ui.table.Table`.
+- **`Ui5I18n` and `Ui5Model`** - assert against the app's own translated texts and its real model
+  data, instead of hardcoded English strings and formatted, localized display text.
+- **`Ui5MessageToast` and `Ui5Messages`** - race-free assertions on toasts (recorded as the app
+  raises them, so they survive their own ~3s auto-hide) and on SAPUI5's central message model.
+- **`Ui5Select` and `Ui5DatePicker`** - pick from a dropdown whose options aren't in the DOM until
+  it opens (and whose clickable entries carry no keys), and set dates without hardcoding a
+  locale's display format or tripping over the ISO-string timezone shift.
+- **Four real, free demo-app walkthroughs** - a complete Fiori Elements List Report + Object Page,
+  classic master-detail navigation, `sap.m.PlanningCalendar`, and a different app shell
+  (`sap.tnt.ToolPage`) - see [docs/demo-apps.md](docs/demo-apps.md).
 - Documented, real-example-backed recipes for **accessibility testing**, **visual regression
   testing**, **multi-environment configuration**, **authentication**, and **OData mocking** - see
   the docs table below.
@@ -124,6 +134,11 @@ export class CartPage extends Ui5Page {
 | [docs/smart-controls.md](docs/smart-controls.md)                     | `Ui5SmartFilterBar`/`Ui5SmartTable` - Fiori Elements' generated filter bar and result table                                                   |
 | [docs/ui5-grid-table.md](docs/ui5-grid-table.md)                     | `Ui5GridTable` - row/cell/header access for `sap.ui.table.Table`, the virtualized grid table                                                  |
 | [docs/value-help-dialog.md](docs/value-help-dialog.md)               | `Ui5ValueHelpDialog` - opening and selecting from a value help ("F4 help") dialog                                                             |
+| [docs/i18n.md](docs/i18n.md)                                         | `Ui5I18n` - assert using the app's own translated texts instead of hardcoded strings                                                          |
+| [docs/model-data.md](docs/model-data.md)                             | `Ui5Model` - assert on the app's real model data, not formatted display text                                                                  |
+| [docs/form-inputs.md](docs/form-inputs.md)                           | `Ui5Select` / `Ui5DatePicker` - dropdowns and dates, without the usual flakiness                                                              |
+| [docs/messages.md](docs/messages.md)                                 | `Ui5MessageToast` (race-free toast assertions) and `Ui5Messages` (validation/backend errors)                                                  |
+| [docs/demo-apps.md](docs/demo-apps.md)                               | Four real, free demo apps (Fiori Elements, master-detail, PlanningCalendar, a different shell)                                                |
 | [docs/examples.md](docs/examples.md)                                 | A guided tour of every example test - search, self-healing, data-driven tests, network mocking, and more                                      |
 | [docs/generator.md](docs/generator.md)                               | The `pw-sapui5 generate` CLI, options, and its limits                                                                                         |
 | [docs/multi-environment-config.md](docs/multi-environment-config.md) | Pointing tests at dev/QA/prod via env vars instead of hardcoded URLs                                                                          |
@@ -178,12 +193,13 @@ npx playwright install chromium
 npm test
 ```
 
-This runs all 17 files in [`examples/tests/`](examples/tests/) - covering basic navigation, form
+This runs all 24 files in [`examples/tests/`](examples/tests/) - covering basic navigation, form
 filling, multi-step Page Object flows, data-driven tests, self-healing locators, network mocking,
 state inspection, accessibility, visual regression, custom UI5 matchers, tables, dialogs, OData
-mocking, testing an app embedded in an iframe, SmartFilterBar/SmartTable, grid tables, and value
-help dialogs - against real, live public SAPUI5 demo apps (SAP's Shopping Cart demo, plus official
-samples from the SAPUI5 SDK itself), so no setup beyond an internet connection is needed.
+mocking, testing an app embedded in an iframe, SmartFilterBar/SmartTable, grid tables, value help
+dialogs, and four real demo apps (Fiori Elements, master-detail, PlanningCalendar, a different app
+shell) - against real, live public SAPUI5 demo apps, so no setup beyond an internet connection is
+needed.
 (The visual regression test skips itself outside macOS - see
 [docs/visual-testing.md](docs/visual-testing.md#platform-sensitivity).) See
 [docs/examples.md](docs/examples.md) for a guided tour of which file covers what.

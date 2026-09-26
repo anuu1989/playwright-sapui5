@@ -166,3 +166,84 @@ export interface Ui5GridTableInfo {
   firstVisibleRow: number | undefined;
   renderedRows: Ui5ControlInfo[];
 }
+
+/** The result of reading one translated text from the app's own i18n `ResourceBundle`
+ * (`Ui5Bridge.getI18nText`) - `found: false` means no bundle on the page had that key at all,
+ * which is a genuinely different situation from "the text is an empty string". See
+ * `src/core/Ui5I18n.ts`. */
+export interface Ui5I18nResult {
+  found: boolean;
+  value: string | undefined;
+}
+
+/** The result of reading a value out of a model by binding path (`Ui5Bridge.getModelProperty`).
+ * `found: false` covers both "no such model" and "reading that path threw"; `value` is
+ * `undefined` for a path that exists but holds nothing. See `src/core/Ui5Model.ts`. */
+export interface Ui5ModelPropertyResult {
+  found: boolean;
+  value: unknown;
+}
+
+/**
+ * The result of reading the data object a control is bound to
+ * (`Ui5Bridge.getBindingContextData`). Three distinct outcomes matter here and are worth telling
+ * apart: the control doesn't exist (`found: false`), it exists but isn't bound to anything
+ * (`hasContext: false` - common for a container, or a row whose data hasn't arrived yet), or it's
+ * bound and `data` holds the full entity. See `src/core/Ui5Model.ts`.
+ */
+export interface Ui5BindingContextResult {
+  found: boolean;
+  hasContext: boolean;
+  path: string | undefined;
+  data: unknown;
+}
+
+/** One recorded `sap.m.MessageToast`, captured when the app raised it rather than read off the
+ * DOM - see the instrumentation notes in `src/browser/bridgeScript.ts` and `src/core/Ui5MessageToast.ts`.
+ * `at` is a browser-side `Date.now()` timestamp. */
+export interface Ui5MessageToastRecord {
+  text: string;
+  at: number;
+}
+
+/** One entry from SAPUI5's own message model (validation errors, OData backend errors, anything
+ * the app pushed itself) - see `src/core/Ui5Messages.ts`. `type` is SAPUI5's `MessageType`
+ * (`'Error'`, `'Warning'`, `'Success'`, `'Information'`, `'None'`). */
+export interface Ui5MessageInfo {
+  type: string | undefined;
+  message: string | undefined;
+  description: string | undefined;
+  target: string | undefined;
+}
+
+/** One entry of a dropdown-style control (`sap.m.Select`, `sap.m.ComboBox`, ...). `key` is what
+ * the app binds and filters on; `text` is what the user sees; `id` is the underlying
+ * `sap.ui.core.Item`'s own id - which, for a `ComboBox`, is *not* the id of the clickable element
+ * rendered when the dropdown opens. See `src/core/Ui5Select.ts`. */
+export interface Ui5SelectItem {
+  id: string;
+  key: string | undefined;
+  text: string | undefined;
+}
+
+/** A dropdown-style control's items and current state (`Ui5Bridge.getSelectInfo`).
+ * `selectedKey` is set by single-select controls, `selectedKeys` by `sap.m.MultiComboBox`. */
+export interface Ui5SelectInfo {
+  found: boolean;
+  items: Ui5SelectItem[];
+  selectedKey: string | undefined;
+  selectedKeys: string[];
+  isOpen: boolean;
+}
+
+/** A `sap.m.DatePicker`'s current value (`Ui5Bridge.getDatePickerDate`), as plain calendar parts
+ * plus the formatted string the field displays. Parts rather than a string or timestamp
+ * deliberately - see the notes on `setDatePickerDate` in `src/browser/bridgeScript.ts` for why
+ * dates crossing this boundary are a timezone trap otherwise. */
+export interface Ui5DatePickerValue {
+  found: boolean;
+  year: number | undefined;
+  month: number | undefined;
+  day: number | undefined;
+  value: string | undefined;
+}

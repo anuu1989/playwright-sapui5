@@ -36,9 +36,10 @@ A few common causes, roughly in order of likelihood:
    passing, it won't match. Double check with the [Page Object generator](generator.md) (it
    prints each control's actual `text`/`title`/`value`/`label` next to its type) or by inspecting
    the control directly in the browser console: `sap.ui.getCore().byId('someId').getText()`.
-4. **You're inside an iframe.** The bridge is injected into the top-level frame's page context by
-   default; if your app (or the part you're testing) lives in an iframe, you'll need to adapt -
-   this isn't currently handled automatically.
+4. **You're inside an iframe, and passed a `Page` instead of the iframe's `Frame`.** Every locator/
+   bridge/wait call needs the specific `Frame` an embedded app lives in (`findUi5Frame()` finds it
+   for you) - passing the top-level `Page` only ever searches the shell around it. See
+   [docs/cross-frame.md](cross-frame.md).
 
 ## <a id="unstable-generated-ids"></a>A test that used a raw generated id worked once, then failed on the next run
 
@@ -74,6 +75,25 @@ this demo app happen to name their title control `page-title`) - see the comment
 If you're not sure how much of the id to include, the [Page Object generator](generator.md) shows
 you full ids for every control it finds - use enough of the suffix to make it unique to the view
 you mean.
+
+## An auto-detected row type turns out to be wrong, immediately after navigation
+
+`Ui5Table.from()` auto-detects a list/table's row control type by trying each candidate
+(`sap.m.ColumnListItem`, `sap.m.ObjectListItem`, `sap.m.StandardListItem`, `sap.m.CustomListItem`)
+in turn and using the first one with any matches (see [docs/ui5-table.md](ui5-table.md)). If you
+call `Ui5Table.from()` immediately after `page.goto()` against a list whose data loads on a delay
+that this framework's busy/network tracking doesn't see - a `setTimeout`-based mock server is the
+common case, since it isn't a real `fetch`/`XHR` call our instrumentation can observe - the real
+rows may not exist yet at that exact moment. `waitForUi5()` can settle on the "no data yet" state,
+and detection then locks onto whatever coincidentally matches first - often a list's own growing/
+"load more" trigger element, which some UI5 versions render as `sap.m.CustomListItem` regardless
+of what the real rows are.
+
+The fix is two-fold: wait for at least one real row to exist first (e.g.
+`ui5(page).controlType('<the row type you expect>').waitFor()`), and pass `rowControlType`
+explicitly to `Ui5Table.from()` once you know it, skipping auto-detection's guesswork entirely.
+This framework's own [`examples/tests/master-detail.spec.ts`](../examples/tests/master-detail.spec.ts)
+hit exactly this against a live demo app - see the comment there for the real fix.
 
 ## `waitForUi5` / `waitForUi5Core` times out on an app that I know is fine
 

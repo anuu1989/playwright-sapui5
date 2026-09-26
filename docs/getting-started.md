@@ -175,6 +175,17 @@ more patterns, and [docs/auto-wait.md](auto-wait.md) for exactly what "settle" m
   virtualized rows (a plain `sap.m.Table` uses [`Ui5Table`](ui5-table.md) instead).
 - [docs/value-help-dialog.md](value-help-dialog.md) - `Ui5ValueHelpDialog`, for opening and
   selecting from a value help ("F4 help") dialog.
+- [docs/i18n.md](i18n.md) - `Ui5I18n`, for asserting against the app's own translated texts so a
+  test keeps passing in every language.
+- [docs/model-data.md](model-data.md) - `Ui5Model`, for asserting on the app's real data instead
+  of formatted, localized, possibly-truncated display text.
+- [docs/form-inputs.md](form-inputs.md) - `Ui5Select` and `Ui5DatePicker`, for dropdowns whose
+  options aren't in the DOM until opened, and dates without locale/timezone traps.
+- [docs/messages.md](messages.md) - `Ui5MessageToast` and `Ui5Messages`, for toasts that vanish
+  after three seconds and for validation/backend errors.
+- [docs/demo-apps.md](demo-apps.md) - this framework used against four real, free, complete SAPUI5
+  apps (not isolated single-control samples): a Fiori Elements List Report + Object Page,
+  master-detail navigation, `sap.m.PlanningCalendar`, and a different app shell.
 - [docs/examples.md](examples.md) - a guided tour of every example test in this repo: form
   filling, multi-step navigation, data-driven tests, network mocking, and more.
 - [docs/troubleshooting.md](troubleshooting.md) - if something doesn't work, check here first.
@@ -198,12 +209,13 @@ npx playwright install chromium
 npm test
 ```
 
-This runs all 17 files in [`examples/tests/`](../examples/tests/) against real, live public
-SAPUI5 demo apps (SAP's Shopping Cart demo, plus official SAPUI5 SDK samples) - covering basic
-navigation, form filling, multi-step Page Object flows, data-driven tests, self-healing locators,
-network mocking, state inspection, accessibility, visual regression, custom UI5 matchers, tables,
-dialogs, OData mocking, testing an app embedded in an iframe, SmartFilterBar/SmartTable, grid
-tables, and value help dialogs. They're real, passing tests, not pseudocode; see
+This runs all 24 files in [`examples/tests/`](../examples/tests/) against real, live public
+SAPUI5 demo apps - covering basic navigation, form filling, multi-step Page Object flows,
+data-driven tests, self-healing locators, network mocking, state inspection, accessibility, visual
+regression, custom UI5 matchers, tables, dialogs, OData mocking, testing an app embedded in an
+iframe, SmartFilterBar/SmartTable, grid tables, value help dialogs, and four real demo apps (Fiori
+Elements, master-detail, PlanningCalendar, a different app shell - see
+[docs/demo-apps.md](demo-apps.md)). They're real, passing tests, not pseudocode; see
 [docs/examples.md](examples.md) for a guided tour of which file covers what, and read
 [`examples/pages/CartPage.ts`](../examples/pages/CartPage.ts)
 alongside this guide for the Page Object they're built on.

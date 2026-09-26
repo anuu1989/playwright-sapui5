@@ -112,6 +112,56 @@ export function bridgeScript(): void {
     // ignore - XHR instrumentation is best-effort
   }
 
+  // --- Record every MessageToast, so tests can assert on ones that already vanished ------------
+  // `sap.m.MessageToast` is the single most awkward thing in SAPUI5 to assert on: it isn't a
+  // control (nothing in the element registry, no id, no `isOpen()`), it renders as a bare
+  // `<div class="sapMMessageToast">` appended to the body, and it **removes itself after about
+  // three seconds**. A test that clicks a button and then looks for the toast is racing that
+  // timer - and loses whenever the machine is slow, which is exactly when CI is slow.
+  //
+  // Wrapping `MessageToast.show()` sidesteps the race completely: every toast the app ever raises
+  // gets appended to a log that persists long after the toast itself is gone, so
+  // `Ui5MessageToast.waitForText(...)` can assert on it whenever it likes. The original `show` is
+  // always called through to, so the app behaves exactly as it did before.
+  const messageToastLog: { text: string; at: number }[] = [];
+  let messageToastPatched = false;
+
+  function tryPatchMessageToast(): boolean {
+    if (messageToastPatched) return true;
+    try {
+      // `sap.ui.require('sap/m/MessageToast')` (single-string, synchronous form) returns the
+      // module only if it's already loaded - which it won't be at bridge-install time, since the
+      // bridge is deliberately injected *before* UI5 itself boots. Hence the retry below.
+      if (!w.sap || !w.sap.ui || typeof w.sap.ui.require !== 'function') return false;
+      const MessageToast = w.sap.ui.require('sap/m/MessageToast');
+      if (!MessageToast || typeof MessageToast.show !== 'function') return false;
+      const originalShow = MessageToast.show;
+      MessageToast.show = function (this: unknown, ...args: unknown[]) {
+        try {
+          messageToastLog.push({ text: String(args[0]), at: Date.now() });
+        } catch {
+          // recording must never break the app's own toast
+        }
+        return originalShow.apply(this, args);
+      };
+      messageToastPatched = true;
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  if (!tryPatchMessageToast()) {
+    // Not loaded yet - retry on a timer until `sap.m` shows up, then stop. Bounded (roughly a
+    // minute at 200ms) so a page that never loads `sap.m` at all doesn't leave a timer running
+    // for the lifetime of the document.
+    let attempts = 0;
+    const patchTimer = setInterval(() => {
+      attempts++;
+      if (tryPatchMessageToast() || attempts > 300) clearInterval(patchTimer);
+    }, 200);
+  }
+
   // --- UI5 control tree helpers --------------------------------------------------------------
   // Everything below this point is read-only: none of it modifies the page, it only reads from
   // SAPUI5's own runtime objects to answer "what controls exist, and what do they look like
@@ -578,6 +628,407 @@ export function bridgeScript(): void {
     }
   }
 
+  /** Makes an arbitrary value safe to send back to Node. Anything crossing the browser/Node
+   * boundary has to be JSON-serializable (see `Ui5ControlInfo` in `src/core/types.ts`), and model
+   * data in particular can hold circular references (an OData entity pointing back at its own
+   * parent) that would otherwise throw when Playwright tries to serialize the result. The
+   * round-trip through `JSON` both strips non-serializable values and turns a circular structure
+   * into a clean `undefined` rather than a confusing crash. */
+  function toSerializable(value: any): any {
+    try {
+      return value === undefined ? undefined : JSON.parse(JSON.stringify(value));
+    } catch {
+      return undefined;
+    }
+  }
+
+  /** Every registered `sap.ui.core.Component` - the top-level objects an app's models (including
+   * its i18n bundle) hang off. Used by the i18n/model helpers below; SAPUI5 apps set their models
+   * on the component, not on the Core, so this is where "the app's data" actually lives. */
+  function getAllComponents(): any[] {
+    try {
+      const ComponentModule =
+        w.sap && w.sap.ui && typeof w.sap.ui.require === 'function'
+          ? w.sap.ui.require('sap/ui/core/Component')
+          : null;
+      if (ComponentModule && ComponentModule.registry && ComponentModule.registry.all) {
+        const all = ComponentModule.registry.all();
+        return Object.keys(all).map((k) => all[k]);
+      }
+    } catch {
+      // fall through
+    }
+    return [];
+  }
+
+  /**
+   * Reads one translated text out of the app's own i18n `ResourceBundle` - the same string the
+   * app itself renders, in whatever language it's currently running in, rather than an English
+   * literal hardcoded into a test. Backs `Ui5I18n` (see `src/core/Ui5I18n.ts` and
+   * docs/i18n.md).
+   *
+   * `async` because `getResourceBundle()` returns a **Promise** whenever the bundle is configured
+   * to load asynchronously (verified against SAP's own Shopping Cart demo, which does exactly
+   * that) - this is the one bridge function that genuinely has to await something, and it works
+   * because `page.evaluate()` awaits a returned Promise for us.
+   */
+  async function getI18nText(key: string, args?: unknown[], modelName?: string) {
+    const name = modelName || 'i18n';
+    const components = getAllComponents();
+    const bundles: any[] = [];
+
+    async function collectFrom(owner: any, wantedName: string | undefined) {
+      try {
+        if (!owner || typeof owner.getModel !== 'function') return;
+        const model = owner.getModel(wantedName);
+        if (!model || typeof model.getResourceBundle !== 'function') return;
+        let bundle = model.getResourceBundle();
+        if (bundle && typeof bundle.then === 'function') bundle = await bundle;
+        if (bundle && typeof bundle.getText === 'function') bundles.push(bundle);
+      } catch {
+        // a model that isn't a ResourceModel, or a bundle that failed to load - skip it
+      }
+    }
+
+    for (const component of components) await collectFrom(component, name);
+
+    // Nothing under the expected model name: fall back to *any* model on any component that
+    // looks like a resource bundle, so an app that names its i18n model something else still
+    // works without the caller having to know that up front.
+    if (bundles.length === 0) {
+      for (const component of components) {
+        let names: string[] = [];
+        try {
+          names = component.oModels ? Object.keys(component.oModels) : [];
+        } catch {
+          names = [];
+        }
+        for (const modelKey of names) {
+          await collectFrom(component, modelKey === 'undefined' ? undefined : modelKey);
+        }
+      }
+    }
+
+    for (const bundle of bundles) {
+      try {
+        const text = bundle.getText(key, args);
+        // A ResourceBundle returns the key itself when there's no such text, so `text !== key` is
+        // the portable "did this bundle actually have it" check; `hasText()` (newer UI5) is more
+        // direct when available, but only reports on this exact bundle, not its fallbacks.
+        const has = typeof bundle.hasText === 'function' && bundle.hasText(key);
+        if (has || text !== key) return { found: true, value: text };
+      } catch {
+        // try the next bundle
+      }
+    }
+    return { found: false, value: undefined };
+  }
+
+  /** Finds a model by name - on a specific control if `controlId` is given (which also picks up
+   * models set on any of its parents, since `getModel()` walks up the control tree), otherwise on
+   * whichever component has one. */
+  function findModel(modelName?: string, controlId?: string): any {
+    const name = modelName === undefined || modelName === '' ? undefined : modelName;
+    if (controlId) {
+      const el = findByExactId(controlId);
+      try {
+        const model = el && typeof el.getModel === 'function' ? el.getModel(name) : null;
+        if (model) return model;
+      } catch {
+        // fall through to components
+      }
+    }
+    for (const component of getAllComponents()) {
+      try {
+        const model = typeof component.getModel === 'function' ? component.getModel(name) : null;
+        if (model) return model;
+      } catch {
+        // try the next component
+      }
+    }
+    return null;
+  }
+
+  /** Reads a value straight out of a model by binding path (e.g. `/Products/0/Name`) - the app's
+   * own data, not whatever happens to be rendered as text. Backs `Ui5Model.getProperty()`. */
+  function getModelProperty(path: string, modelName?: string, controlId?: string) {
+    const model = findModel(modelName, controlId);
+    if (!model || typeof model.getProperty !== 'function') {
+      return { found: false, value: undefined };
+    }
+    try {
+      return { found: true, value: toSerializable(model.getProperty(path)) };
+    } catch {
+      return { found: false, value: undefined };
+    }
+  }
+
+  /**
+   * Reads the entire data object a control is currently bound to - e.g. the full OData entity
+   * behind one table row, every field of it, including ones the row doesn't render. Backs
+   * `Ui5Model.getBindingContextData()`, which is the piece that lets a test assert on real
+   * business data rather than on formatted, truncated, localized display text.
+   */
+  function getBindingContextData(controlId: string, modelName?: string) {
+    const el = findByExactId(controlId);
+    if (!el) return { found: false, hasContext: false, path: undefined, data: undefined };
+    const name = modelName === undefined || modelName === '' ? undefined : modelName;
+    try {
+      const context =
+        typeof el.getBindingContext === 'function' ? el.getBindingContext(name) : null;
+      if (!context) return { found: true, hasContext: false, path: undefined, data: undefined };
+      return {
+        found: true,
+        hasContext: true,
+        path: typeof context.getPath === 'function' ? context.getPath() : undefined,
+        data: toSerializable(
+          typeof context.getObject === 'function' ? context.getObject() : undefined,
+        ),
+      };
+    } catch {
+      return { found: true, hasContext: false, path: undefined, data: undefined };
+    }
+  }
+
+  /** Every model name set on any component (`''` standing in for the default, unnamed model) -
+   * a debugging aid for "what models does this app even have?", since model names are an
+   * app-internal detail nothing in the UI exposes. Backs `Ui5Model.listModels()`. */
+  function listModelNames(): string[] {
+    const names: string[] = [];
+    for (const component of getAllComponents()) {
+      try {
+        const own = component.oModels ? Object.keys(component.oModels) : [];
+        for (const name of own) {
+          const normalized = name === 'undefined' ? '' : name;
+          if (names.indexOf(normalized) === -1) names.push(normalized);
+        }
+      } catch {
+        // skip this component
+      }
+    }
+    return names;
+  }
+
+  /** Every `sap.m.MessageToast` this document has raised since the bridge was installed - see the
+   * instrumentation near the top of this file for why these are recorded rather than read off the
+   * DOM. Backs `Ui5MessageToast`. */
+  function getMessageToasts() {
+    tryPatchMessageToast();
+    return messageToastLog.slice();
+  }
+
+  /** Empties the recorded toast log - call before an action to assert precisely on what *that*
+   * action raised, rather than on anything left over from earlier in the test. */
+  function clearMessageToasts() {
+    messageToastLog.length = 0;
+    return true;
+  }
+
+  /**
+   * Every message currently in SAPUI5's own message model - validation errors, OData backend
+   * errors, and anything the app pushed itself. This is what's behind the message popover in a
+   * Fiori app's footer, and it's the reliable way to assert "the form reported exactly this
+   * error" without hunting for whichever control happens to render it. Backs `Ui5Messages`.
+   */
+  function getUi5Messages() {
+    let data: any[] = [];
+    try {
+      // UI5 >= 1.118 moved message handling to its own `Messaging` module; older versions keep it
+      // on the Core. Same "try modern, fall back to legacy" shape as `getAllRegisteredElements()`.
+      const Messaging =
+        w.sap && w.sap.ui && typeof w.sap.ui.require === 'function'
+          ? w.sap.ui.require('sap/ui/core/Messaging')
+          : null;
+      if (Messaging && typeof Messaging.getMessageModel === 'function') {
+        data = Messaging.getMessageModel().getData() || [];
+      } else {
+        const core = getCore();
+        if (core && typeof core.getMessageManager === 'function') {
+          data = core.getMessageManager().getMessageModel().getData() || [];
+        }
+      }
+    } catch {
+      return [];
+    }
+
+    return data.map((message: any) => {
+      // Entries can be live `sap.ui.core.message.Message` objects (getters) or already-plain
+      // objects, depending on UI5 version - read whichever shape this one is.
+      function read(getterName: string, propertyName: string) {
+        try {
+          if (typeof message[getterName] === 'function') return message[getterName]();
+          return message[propertyName];
+        } catch {
+          return undefined;
+        }
+      }
+      return {
+        type: read('getType', 'type'),
+        message: read('getMessage', 'message'),
+        description: read('getDescription', 'description'),
+        target: read('getTarget', 'target'),
+      };
+    });
+  }
+
+  /** Removes every message from SAPUI5's message model - useful to reset between steps so a later
+   * assertion can't be confused by an error raised earlier in the same test. */
+  function clearUi5Messages() {
+    try {
+      const Messaging =
+        w.sap && w.sap.ui && typeof w.sap.ui.require === 'function'
+          ? w.sap.ui.require('sap/ui/core/Messaging')
+          : null;
+      if (Messaging && typeof Messaging.removeAllMessages === 'function') {
+        Messaging.removeAllMessages();
+        return true;
+      }
+      const core = getCore();
+      if (core && typeof core.getMessageManager === 'function') {
+        core.getMessageManager().removeAllMessages();
+        return true;
+      }
+    } catch {
+      return false;
+    }
+    return false;
+  }
+
+  /**
+   * Reads a dropdown-style control's items (`sap.m.Select`, `sap.m.ComboBox`,
+   * `sap.m.MultiComboBox`, and the `sap.ui.comp.smartfield` variants), plus what's selected and
+   * whether it's currently open. Backs `Ui5Select` - see `src/core/Ui5Select.ts`.
+   *
+   * The reason this has to exist: a dropdown's items are `sap.ui.core.Item` objects that, for a
+   * `ComboBox`, **have no DOM at all** until the dropdown opens - and even then, what renders is a
+   * set of *separate* `sap.m.StandardListItem` controls mirroring them. So the items carrying the
+   * keys are not the items you can click, and neither is reachable by an ordinary locator while
+   * the dropdown is shut. Reading them straight off the control sidesteps all of that.
+   */
+  function getSelectInfo(id: string) {
+    const el = findByExactId(id);
+    if (!el || typeof el.getItems !== 'function') {
+      return { found: false, items: [], selectedKey: undefined, selectedKeys: [], isOpen: false };
+    }
+    let items: { id: string; key: string | undefined; text: string | undefined }[] = [];
+    try {
+      items = el.getItems().map((item: any) => ({
+        id: typeof item.getId === 'function' ? item.getId() : '',
+        key: typeof item.getKey === 'function' ? item.getKey() : undefined,
+        text: typeof item.getText === 'function' ? item.getText() : undefined,
+      }));
+    } catch {
+      items = [];
+    }
+    function safe(getterName: string, fallback: any) {
+      try {
+        return typeof el[getterName] === 'function' ? el[getterName]() : fallback;
+      } catch {
+        return fallback;
+      }
+    }
+    return {
+      found: true,
+      items,
+      // Single-select controls expose `selectedKey`; `MultiComboBox` exposes `selectedKeys`.
+      selectedKey: safe('getSelectedKey', undefined),
+      selectedKeys: safe('getSelectedKeys', []),
+      isOpen: !!safe('isOpen', false),
+    };
+  }
+
+  /** Opens a dropdown via the control's own `open()` - the fallback for when clicking the
+   * rendered arrow isn't possible. Backs `Ui5Select`. */
+  function openSelect(id: string) {
+    const el = findByExactId(id);
+    if (!el || typeof el.open !== 'function') return { found: false, ok: false };
+    try {
+      el.open();
+      return { found: true, ok: true };
+    } catch (e) {
+      return { found: true, ok: false, error: e instanceof Error ? e.message : String(e) };
+    }
+  }
+
+  /** Closes a dropdown via the control's own `close()`. Mainly useful for `MultiComboBox`, whose
+   * list deliberately stays open after each selection so more can be picked. */
+  function closeSelect(id: string) {
+    const el = findByExactId(id);
+    if (!el || typeof el.close !== 'function') return { found: false, ok: false };
+    try {
+      el.close();
+      return { found: true, ok: true };
+    } catch (e) {
+      return { found: true, ok: false, error: e instanceof Error ? e.message : String(e) };
+    }
+  }
+
+  /**
+   * Sets a `sap.m.DatePicker`'s value from plain year/month/day numbers, then fires the control's
+   * `change` event so the app's own handlers run exactly as they would after a user edit. Backs
+   * `Ui5DatePicker.setDate()`.
+   *
+   * Taking three integers rather than a date string is deliberate, and is the whole point of this
+   * function. Dates are the classic source of flaky SAPUI5 tests: typing into the field means
+   * matching the control's *display format*, which varies by locale (`Apr 14, 2014` vs
+   * `14.04.2014` vs `2014-04-14`), while passing an ISO string like `'2024-03-15'` through
+   * `new Date(...)` parses it as **UTC midnight** - which, in any timezone behind UTC, silently
+   * becomes the 14th locally. Building the date from parts here, browser-side, is unambiguous in
+   * every locale and timezone.
+   */
+  function setDatePickerDate(id: string, year: number, month: number, day: number) {
+    const el = findByExactId(id);
+    if (!el || typeof el.setDateValue !== 'function') return { found: false, ok: false };
+    try {
+      // `month - 1` because JavaScript's Date months are 0-based; callers pass a human 1-12.
+      el.setDateValue(new Date(year, month - 1, day));
+      if (typeof el.fireChange === 'function') {
+        el.fireChange({
+          value: typeof el.getValue === 'function' ? el.getValue() : undefined,
+          valid: true,
+        });
+      }
+      return {
+        found: true,
+        ok: true,
+        value: typeof el.getValue === 'function' ? el.getValue() : undefined,
+      };
+    } catch (e) {
+      return { found: true, ok: false, error: e instanceof Error ? e.message : String(e) };
+    }
+  }
+
+  /** Reads a `sap.m.DatePicker`'s current date as plain year/month/day numbers (see
+   * `setDatePickerDate` above for why parts rather than a string), alongside the formatted text
+   * the field actually displays. Backs `Ui5DatePicker.getDate()`. */
+  function getDatePickerDate(id: string) {
+    const el = findByExactId(id);
+    if (!el)
+      return { found: false, year: undefined, month: undefined, day: undefined, value: undefined };
+    let date: any = null;
+    try {
+      date = typeof el.getDateValue === 'function' ? el.getDateValue() : null;
+    } catch {
+      date = null;
+    }
+    let value: string | undefined;
+    try {
+      value = typeof el.getValue === 'function' ? el.getValue() : undefined;
+    } catch {
+      value = undefined;
+    }
+    if (!date || typeof date.getFullYear !== 'function') {
+      return { found: true, year: undefined, month: undefined, day: undefined, value };
+    }
+    return {
+      found: true,
+      year: date.getFullYear(),
+      month: date.getMonth() + 1,
+      day: date.getDate(),
+      value,
+    };
+  }
+
   /**
    * Every currently-rendered control that reports itself as open right now, via SAPUI5's own
    * `isOpen()` method - both `sap.m.Dialog` and `sap.m.Popover` (and anything else that happens
@@ -731,4 +1182,17 @@ export function bridgeScript(): void {
   bridge.getSmartTableInfo = getSmartTableInfo;
   bridge.getGridTableInfo = getGridTableInfo;
   bridge.scrollGridTableToRow = scrollGridTableToRow;
+  bridge.getI18nText = getI18nText;
+  bridge.getModelProperty = getModelProperty;
+  bridge.getBindingContextData = getBindingContextData;
+  bridge.listModelNames = listModelNames;
+  bridge.getMessageToasts = getMessageToasts;
+  bridge.clearMessageToasts = clearMessageToasts;
+  bridge.getUi5Messages = getUi5Messages;
+  bridge.clearUi5Messages = clearUi5Messages;
+  bridge.getSelectInfo = getSelectInfo;
+  bridge.openSelect = openSelect;
+  bridge.closeSelect = closeSelect;
+  bridge.setDatePickerDate = setDatePickerDate;
+  bridge.getDatePickerDate = getDatePickerDate;
 }

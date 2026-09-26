@@ -10,9 +10,11 @@ run against official sample apps from the SAPUI5 SDK itself, used specifically b
 contain controls the Shopping Cart demo has none of - a real `sap.m.Table`, a real dialog, a real
 SmartFilterBar/SmartTable pair with actual mock data behind it. One (`cross-frame.spec.ts`) embeds
 the same Shopping Cart demo inside a minimal iframe shell it builds itself, since there's no
-public, stable Fiori Launchpad demo to point a test at directly. Each file focuses on a different
-automation topic - read this page to find the one closest to what you're trying to do, then open
-the file.
+public, stable Fiori Launchpad demo to point a test at directly. Four more target complete, real
+demo apps rather than single-control samples - see
+[Four real demo apps, not just single-control samples](#four-real-demo-apps-not-just-single-control-samples)
+below. Each file focuses on a different automation topic - read this page to find the one closest
+to what you're trying to do, then open the file.
 
 | File                                                                                       | Topic                                           | What it shows                                                                                                                                                                                                                                     |
 | ------------------------------------------------------------------------------------------ | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -33,6 +35,9 @@ the file.
 | [`smart-controls.spec.ts`](../examples/tests/smart-controls.spec.ts) _(SDK sample)_        | `Ui5SmartFilterBar`/`Ui5SmartTable`             | Setting a token-based filter value in the right shape, searching, and reading a SmartTable's true row count against a real, virtualized `sap.ui.table.Table`. See [docs/smart-controls.md](smart-controls.md).                                    |
 | [`grid-table.spec.ts`](../examples/tests/grid-table.spec.ts) _(SDK sample)_                | `Ui5GridTable`                                  | True row count vs. what's rendered, column headers, and `scrollToRow()` bringing an off-screen row into range, against a real 123-row `sap.ui.table.Table`. See [docs/ui5-grid-table.md](ui5-grid-table.md).                                      |
 | [`value-help-dialog.spec.ts`](../examples/tests/value-help-dialog.spec.ts) _(SDK samples)_ | `Ui5ValueHelpDialog`                            | Opening a value help dialog via its `-vhi` trigger icon and selecting a row, against both a plain `sap.m.Table`-backed `SelectDialog` and a `sap.ui.table.Table`-backed `ValueHelpDialog`. See [docs/value-help-dialog.md](value-help-dialog.md). |
+| [`i18n-and-model.spec.ts`](../examples/tests/i18n-and-model.spec.ts)                       | `Ui5I18n` / `Ui5Model`                          | Asserting via the app's own i18n keys (locale-proof) and reading the full entity behind a row instead of its rendered text. See [docs/i18n.md](i18n.md), [docs/model-data.md](model-data.md).                                                     |
+| [`messages.spec.ts`](../examples/tests/messages.spec.ts)                                   | Toasts & messages                               | A MessageToast still assertable after it vanished from the DOM, and SAPUI5's central message model. See [docs/messages.md](messages.md).                                                                                                          |
+| [`form-inputs.spec.ts`](../examples/tests/form-inputs.spec.ts) _(SDK samples)_             | `Ui5Select` / `Ui5DatePicker`                   | Picking from Select/ComboBox/MultiComboBox (options that aren't in the DOM until opened), and setting dates without the locale/timezone traps. See [docs/form-inputs.md](form-inputs.md).                                                         |
 
 ## The Page Objects behind them
 
@@ -46,10 +51,26 @@ Read them alongside [docs/page-objects.md](page-objects.md) - they're a complete
 the patterns that guide describes (getters vs. methods, parameterized locators, composing Page
 Objects).
 
-## Two real gotchas these examples ran into (and fixed)
+## Four real demo apps, not just single-control samples
 
-Both are documented in full in [docs/troubleshooting.md](troubleshooting.md), because they're the
-kind of thing you're likely to hit yourself against a real app, not just this demo:
+The examples above mostly target either the Shopping Cart demo or an isolated, single-control SDK
+sample. [docs/demo-apps.md](demo-apps.md) is a separate guided tour of four real, complete, free
+SAPUI5 applications instead - a full Fiori Elements List Report + Object Page, classic
+master-detail navigation, `sap.m.PlanningCalendar`, and a different app shell
+(`sap.tnt.ToolPage`) - each with its own example test, built entirely from the same primitives
+covered everywhere else in these docs:
+
+| File                                                                         | App                      | What it shows                                                                                                 |
+| ---------------------------------------------------------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------- |
+| [`fiori-elements-app.spec.ts`](../examples/tests/fiori-elements-app.spec.ts) | Manage Products          | A real Fiori Elements List Report + Object Page - `Ui5SmartFilterBar`/`Ui5SmartTable` against the real thing. |
+| [`master-detail.spec.ts`](../examples/tests/master-detail.spec.ts)           | Browse Orders            | Classic master-detail navigation, and the row-type auto-detection timing gotcha below.                        |
+| [`team-calendar.spec.ts`](../examples/tests/team-calendar.spec.ts)           | Team Calendar            | `sap.m.PlanningCalendar` handled entirely with general-purpose primitives - no dedicated helper needed.       |
+| [`tool-page-shell.spec.ts`](../examples/tests/tool-page-shell.spec.ts)       | Shop Administration Tool | A `sap.tnt.ToolPage` shell - side navigation (including an expandable group) driving content changes.         |
+
+## Three real gotchas these examples ran into (and fixed)
+
+All three are documented in full in [docs/troubleshooting.md](troubleshooting.md), because they're
+the kind of thing you're likely to hit yourself against a real app, not just this demo:
 
 - **Raw SAPUI5-generated ids aren't stable across sessions** - `CartPage.product()` locates
   products by text, not id, because of this. See
@@ -58,6 +79,10 @@ kind of thing you're likely to hit yourself against a real app, not just this de
   keeps it in the DOM after a transition instead of removing it. `CategoryPage.title` and
   `.backButton` use a longer, more specific suffix to avoid this. See
   [docs/troubleshooting.md](troubleshooting.md#an-id-locator-matches-two-elements-instead-of-one-and-playwright-refuses-to-act).
+- **`Ui5Table.from()`'s row-type auto-detection can lock onto the wrong type** if called before a
+  list's data has actually loaded - `master-detail.spec.ts` (see [docs/demo-apps.md](demo-apps.md))
+  hit this against a real app with delayed mock data. See
+  [docs/troubleshooting.md#an-auto-detected-row-type-turns-out-to-be-wrong-immediately-after-navigation](troubleshooting.md#an-auto-detected-row-type-turns-out-to-be-wrong-immediately-after-navigation).
 
 ## Want to try the generator against this same app?
 

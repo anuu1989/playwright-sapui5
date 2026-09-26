@@ -1,12 +1,19 @@
 import type { Frame, Page } from '@playwright/test';
 import { bridgeScript } from '../browser/bridgeScript';
 import type {
+  Ui5BindingContextResult,
   Ui5BridgeActionResult,
   Ui5ControlDump,
   Ui5ControlInfo,
+  Ui5DatePickerValue,
   Ui5FilterDataResult,
   Ui5GridTableInfo,
+  Ui5I18nResult,
+  Ui5MessageInfo,
+  Ui5MessageToastRecord,
+  Ui5ModelPropertyResult,
   Ui5PropertyResult,
+  Ui5SelectInfo,
   Ui5SmartTableInfo,
   Ui5TextResult,
 } from './types';
@@ -317,5 +324,135 @@ export class Ui5Bridge {
       ({ id, rowIndex }) => (window as any).__pwSapUi5__.scrollGridTableToRow(id, rowIndex),
       { id, rowIndex },
     );
+  }
+
+  // --- Advanced: the app's own data, texts and messages -----------------------------------------
+  // Backs `Ui5I18n`, `Ui5Model`, `Ui5MessageToast` and `Ui5Messages`. Everything above this point
+  // reads *controls*; these read what the app is actually made of underneath them - its
+  // translated texts, its model data, and the messages it raised - so a test can assert on those
+  // directly instead of on whatever happens to be rendered as display text.
+
+  /** Reads one translated text from the app's own i18n `ResourceBundle`. Used by `Ui5I18n`. */
+  static async getI18nText(
+    target: Ui5Target,
+    key: string,
+    args?: unknown[],
+    modelName?: string,
+  ): Promise<Ui5I18nResult> {
+    await this.ensure(target);
+    return target.evaluate(
+      ({ key, args, modelName }) => (window as any).__pwSapUi5__.getI18nText(key, args, modelName),
+      { key, args, modelName },
+    );
+  }
+
+  /** Reads a value out of a model by binding path. Used by `Ui5Model.getProperty()`. */
+  static async getModelProperty(
+    target: Ui5Target,
+    path: string,
+    modelName?: string,
+    controlId?: string,
+  ): Promise<Ui5ModelPropertyResult> {
+    await this.ensure(target);
+    return target.evaluate(
+      ({ path, modelName, controlId }) =>
+        (window as any).__pwSapUi5__.getModelProperty(path, modelName, controlId),
+      { path, modelName, controlId },
+    );
+  }
+
+  /** Reads the whole data object the control with exact id `id` is bound to. Used by
+   * `Ui5Model.getBindingContextData()`. */
+  static async getBindingContextData(
+    target: Ui5Target,
+    id: string,
+    modelName?: string,
+  ): Promise<Ui5BindingContextResult> {
+    await this.ensure(target);
+    return target.evaluate(
+      ({ id, modelName }) => (window as any).__pwSapUi5__.getBindingContextData(id, modelName),
+      { id, modelName },
+    );
+  }
+
+  /** Every model name set on any of the app's components (`''` = the default, unnamed model).
+   * Used by `Ui5Model.listModels()`. */
+  static async listModelNames(target: Ui5Target): Promise<string[]> {
+    await this.ensure(target);
+    return target.evaluate(() => (window as any).__pwSapUi5__.listModelNames());
+  }
+
+  /** Every `sap.m.MessageToast` raised since the bridge was installed - recorded as the app
+   * raises them, so they survive the toast's own ~3s auto-hide. Used by `Ui5MessageToast`. */
+  static async getMessageToasts(target: Ui5Target): Promise<Ui5MessageToastRecord[]> {
+    await this.ensure(target);
+    return target.evaluate(() => (window as any).__pwSapUi5__.getMessageToasts());
+  }
+
+  /** Empties the recorded toast log. Used by `Ui5MessageToast.clear()`. */
+  static async clearMessageToasts(target: Ui5Target): Promise<void> {
+    await this.ensure(target);
+    await target.evaluate(() => (window as any).__pwSapUi5__.clearMessageToasts());
+  }
+
+  /** Every message in SAPUI5's own message model (validation/OData/app errors). Used by
+   * `Ui5Messages`. */
+  static async getUi5Messages(target: Ui5Target): Promise<Ui5MessageInfo[]> {
+    await this.ensure(target);
+    return target.evaluate(() => (window as any).__pwSapUi5__.getUi5Messages());
+  }
+
+  /** Removes every message from SAPUI5's message model. Used by `Ui5Messages.clear()`. */
+  static async clearUi5Messages(target: Ui5Target): Promise<boolean> {
+    await this.ensure(target);
+    return target.evaluate(() => (window as any).__pwSapUi5__.clearUi5Messages());
+  }
+
+  // --- Advanced: form input controls ------------------------------------------------------------
+  // Backs `Ui5Select` and `Ui5DatePicker` - see docs/form-inputs.md.
+
+  /** A dropdown's items, selection and open state - readable whether or not it's open, which an
+   * ordinary locator can't do since a closed `ComboBox` renders none of its items. Used by
+   * `Ui5Select`. */
+  static async getSelectInfo(target: Ui5Target, id: string): Promise<Ui5SelectInfo> {
+    await this.ensure(target);
+    return target.evaluate(({ id }) => (window as any).__pwSapUi5__.getSelectInfo(id), { id });
+  }
+
+  /** Opens a dropdown via the control's own `open()`. Used by `Ui5Select` as a fallback when the
+   * rendered arrow isn't clickable. */
+  static async openSelect(target: Ui5Target, id: string): Promise<Ui5BridgeActionResult> {
+    await this.ensure(target);
+    return target.evaluate(({ id }) => (window as any).__pwSapUi5__.openSelect(id), { id });
+  }
+
+  /** Closes a dropdown via the control's own `close()`. Used by `Ui5Select.close()`. */
+  static async closeSelect(target: Ui5Target, id: string): Promise<Ui5BridgeActionResult> {
+    await this.ensure(target);
+    return target.evaluate(({ id }) => (window as any).__pwSapUi5__.closeSelect(id), { id });
+  }
+
+  /** Sets a `sap.m.DatePicker`'s date from calendar parts and fires its `change` event. Used by
+   * `Ui5DatePicker.setDate()`. */
+  static async setDatePickerDate(
+    target: Ui5Target,
+    id: string,
+    year: number,
+    month: number,
+    day: number,
+  ): Promise<Ui5BridgeActionResult> {
+    await this.ensure(target);
+    return target.evaluate(
+      ({ id, year, month, day }) =>
+        (window as any).__pwSapUi5__.setDatePickerDate(id, year, month, day),
+      { id, year, month, day },
+    );
+  }
+
+  /** Reads a `sap.m.DatePicker`'s date as calendar parts plus its displayed text. Used by
+   * `Ui5DatePicker.getDate()`. */
+  static async getDatePickerDate(target: Ui5Target, id: string): Promise<Ui5DatePickerValue> {
+    await this.ensure(target);
+    return target.evaluate(({ id }) => (window as any).__pwSapUi5__.getDatePickerDate(id), { id });
   }
 }
