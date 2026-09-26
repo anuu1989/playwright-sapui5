@@ -18,6 +18,12 @@ test.describe('Form input controls', () => {
 
     // Options are readable straight off the control - keys included, and without opening the
     // dropdown first. An ordinary locator can't do either.
+    //
+    // `expect.poll` first because `Ui5Select.items()` reads the control once and doesn't
+    // auto-wait: right after navigation the control can exist before its items have finished
+    // binding, which shows up as an empty list only under parallel load. See
+    // docs/troubleshooting.md.
+    await expect.poll(async () => (await Ui5Select.items(page, select)).length).toBeGreaterThan(1);
     const items = await Ui5Select.items(page, select);
     expect(items.length).toBeGreaterThan(1);
     expect(items[0]).toMatchObject({ key: expect.any(String), text: expect.any(String) });
@@ -45,6 +51,7 @@ test.describe('Form input controls', () => {
     // 70 countries, none of which have any DOM element at all while the dropdown is shut - and
     // once it opens, what renders is a *separate* set of sap.m.StandardListItem controls carrying
     // no keys. Ui5Select bridges the two; see docs/form-inputs.md.
+    await expect.poll(async () => (await Ui5Select.items(page, combo)).length).toBeGreaterThan(50);
     const items = await Ui5Select.items(page, combo);
     expect(items.length).toBeGreaterThan(50);
 
@@ -59,6 +66,7 @@ test.describe('Form input controls', () => {
     await page.goto(sample('sap.m.sample.MultiComboBox'));
 
     const multi = ui5(page).controlType('sap.m.MultiComboBox');
+    await expect.poll(async () => (await Ui5Select.items(page, multi)).length).toBeGreaterThan(1);
     const items = await Ui5Select.items(page, multi);
 
     // A MultiComboBox deliberately keeps its list open after each pick, so selections just stack.

@@ -247,3 +247,53 @@ export interface Ui5DatePickerValue {
   day: number | undefined;
   value: string | undefined;
 }
+
+/** One saved variant of a variant management control - `key` is what the app activates it by,
+ * `text` is the name the user sees in the dropdown. See `src/core/Ui5VariantManagement.ts`. */
+export interface Ui5Variant {
+  key: string | undefined;
+  text: string | undefined;
+}
+
+/** A variant management control's saved variants and which one is currently active
+ * (`Ui5Bridge.getVariantInfo`). */
+export interface Ui5VariantInfo {
+  found: boolean;
+  currentKey: string | undefined;
+  variants: Ui5Variant[];
+}
+
+/** A `sap.f.FlexibleColumnLayout`'s current state (`Ui5Bridge.getFlexibleColumnLayoutInfo`).
+ * `layout` is SAPUI5's own layout enum value (`'OneColumn'`, `'TwoColumnsMidExpanded'`, ...); the
+ * three page ids are whichever page is currently showing in each column, if any. See
+ * `src/core/Ui5FlexibleColumnLayout.ts`. */
+export interface Ui5FlexibleColumnLayoutInfo {
+  found: boolean;
+  layout: string | undefined;
+  beginPage: string | undefined;
+  midPage: string | undefined;
+  endPage: string | undefined;
+}
+
+/** Load/performance numbers for a page (`Ui5Bridge.getPerformanceMetrics`). The browser timings
+ * describe the document load; `ui5ResourceCount`/`controlCount` describe what SAPUI5 then pulled
+ * in and built on top of it - which is where a UI5 app's real startup cost lives. See
+ * `src/core/Ui5Performance.ts`. */
+export interface Ui5PerformanceMetrics {
+  responseEndMs: number | undefined;
+  domContentLoadedMs: number | undefined;
+  loadEventMs: number | undefined;
+  resourceCount: number | undefined;
+  ui5ResourceCount: number | undefined;
+  controlCount: number | undefined;
+}
+
+/** Timings for one full app startup, measured around a navigation
+ * (`Ui5Performance.measureBootstrap`). All values are milliseconds from the moment navigation
+ * started. */
+export interface Ui5BootstrapTimings {
+  navigationMs: number;
+  coreReadyMs: number;
+  settledMs: number;
+  metrics: Ui5PerformanceMetrics;
+}

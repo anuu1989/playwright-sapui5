@@ -351,6 +351,218 @@ class Ui5ValueHelpDialog {
 
 See [docs/value-help-dialog.md](value-help-dialog.md).
 
+## `Ui5I18n`
+
+```ts
+class Ui5I18n {
+  static async getText(
+    target: Ui5Target,
+    key: string,
+    options?: { args?: (string | number)[]; modelName?: string },
+  ): Promise<string>; // throws if the key isn't found
+  static async hasText(
+    target: Ui5Target,
+    key: string,
+    options?: { modelName?: string },
+  ): Promise<boolean>;
+}
+```
+
+See [docs/i18n.md](i18n.md).
+
+## `Ui5Model`
+
+```ts
+class Ui5Model {
+  static async getProperty(
+    target: Ui5Target,
+    path: string,
+    options?: { modelName?: string; control?: Ui5Locator | Locator },
+  ): Promise<unknown>;
+  static async getBindingContextData(
+    target: Ui5Target,
+    control: Ui5Locator | Locator,
+    options?: { modelName?: string },
+  ): Promise<{ hasContext: boolean; path: string | undefined; data: unknown }>;
+  static async listModels(target: Ui5Target): Promise<string[]>;
+}
+```
+
+See [docs/model-data.md](model-data.md).
+
+## `Ui5MessageToast` / `Ui5Messages`
+
+```ts
+class Ui5MessageToast {
+  static async all(target: Ui5Target): Promise<Ui5MessageToastRecord[]>;
+  static async texts(target: Ui5Target): Promise<string[]>;
+  static async clear(target: Ui5Target): Promise<void>;
+  static async waitForText(
+    target: Ui5Target,
+    expected: string | RegExp,
+    options?: { timeout?: number },
+  ): Promise<string>;
+}
+
+class Ui5Messages {
+  static async all(target: Ui5Target): Promise<Ui5MessageInfo[]>;
+  static async errors(target: Ui5Target): Promise<Ui5MessageInfo[]>;
+  static async warnings(target: Ui5Target): Promise<Ui5MessageInfo[]>;
+  static async waitForMessage(
+    target: Ui5Target,
+    expected: string | RegExp,
+    options?: { timeout?: number; type?: string },
+  ): Promise<Ui5MessageInfo>;
+  static async clear(target: Ui5Target): Promise<boolean>;
+}
+```
+
+See [docs/messages.md](messages.md).
+
+## `Ui5Select`
+
+```ts
+class Ui5Select {
+  static async items(target: Ui5Target, select: Ui5Locator | Locator): Promise<Ui5SelectItem[]>;
+  static async selectedKey(
+    target: Ui5Target,
+    select: Ui5Locator | Locator,
+  ): Promise<string | undefined>;
+  static async selectedKeys(target: Ui5Target, select: Ui5Locator | Locator): Promise<string[]>;
+  static async open(target: Ui5Target, select: Ui5Locator | Locator): Promise<void>;
+  static async close(target: Ui5Target, select: Ui5Locator | Locator): Promise<void>;
+  static async selectByText(
+    target: Ui5Target,
+    select: Ui5Locator | Locator,
+    text: string,
+    options?: { exact?: boolean },
+  ): Promise<void>;
+  static async selectByKey(
+    target: Ui5Target,
+    select: Ui5Locator | Locator,
+    key: string,
+  ): Promise<void>;
+}
+```
+
+See [docs/form-inputs.md](form-inputs.md).
+
+## `Ui5DatePicker`
+
+```ts
+class Ui5DatePicker {
+  static async setDate(
+    target: Ui5Target,
+    datePicker: Ui5Locator | Locator,
+    date: Date | string, // a Date, or 'YYYY-MM-DD'
+  ): Promise<void>;
+  static async getDate(
+    target: Ui5Target,
+    datePicker: Ui5Locator | Locator,
+  ): Promise<{ date: Date | null; displayValue: string }>;
+  static async typeDate(datePicker: Ui5Locator | Locator, text: string): Promise<void>;
+}
+```
+
+See [docs/form-inputs.md](form-inputs.md).
+
+## `Ui5VariantManagement`
+
+```ts
+class Ui5VariantManagement {
+  static async variants(target: Ui5Target, vm: Ui5Locator | Locator): Promise<Ui5Variant[]>;
+  static async currentKey(target: Ui5Target, vm: Ui5Locator | Locator): Promise<string | undefined>;
+  static async currentName(
+    target: Ui5Target,
+    vm: Ui5Locator | Locator,
+  ): Promise<string | undefined>;
+  static async selectByKey(
+    target: Ui5Target,
+    vm: Ui5Locator | Locator,
+    key: string,
+    options?: { timeout?: number },
+  ): Promise<void>;
+  static async selectByName(
+    target: Ui5Target,
+    vm: Ui5Locator | Locator,
+    name: string,
+    options?: { timeout?: number },
+  ): Promise<void>;
+}
+```
+
+See [docs/variant-management.md](variant-management.md).
+
+## `Ui5FlexibleColumnLayout`
+
+The locator argument is optional - an app almost always has exactly one.
+
+```ts
+class Ui5FlexibleColumnLayout {
+  static async layout(target: Ui5Target, fcl?: Ui5Locator | Locator): Promise<string | undefined>;
+  static async visibleColumnCount(target: Ui5Target, fcl?: Ui5Locator | Locator): Promise<number>;
+  static async currentPages(
+    target: Ui5Target,
+    fcl?: Ui5Locator | Locator,
+  ): Promise<{ begin?: string; mid?: string; end?: string }>;
+  static async setLayout(
+    target: Ui5Target,
+    layout: string,
+    fcl?: Ui5Locator | Locator,
+    options?: { timeout?: number },
+  ): Promise<void>;
+}
+```
+
+See [docs/flexible-column-layout.md](flexible-column-layout.md).
+
+## `Ui5Performance`
+
+```ts
+class Ui5Performance {
+  static async measureBootstrap(
+    page: Page,
+    url: string,
+    options?: { timeout?: number },
+  ): Promise<Ui5BootstrapTimings>; // { navigationMs, coreReadyMs, settledMs, metrics }
+  static async metrics(target: Ui5Target): Promise<Ui5PerformanceMetrics>;
+}
+```
+
+See [docs/performance.md](performance.md).
+
+## `Ui5Navigation`
+
+```ts
+class Ui5Navigation {
+  static async hash(target: Ui5Target): Promise<string>;
+  static async navTo(
+    target: Ui5Target,
+    routeName: string,
+    parameters?: Record<string, unknown>,
+    options?: { timeout?: number },
+  ): Promise<void>;
+  static async waitForHash(
+    target: Ui5Target,
+    expected: string | RegExp,
+    options?: { timeout?: number },
+  ): Promise<string>;
+}
+```
+
+See [docs/navigation.md](navigation.md).
+
+## Diagnostics
+
+```ts
+function captureControlTree(target: Ui5Target): Promise<{ dump: Ui5ControlDump[]; text: string }>;
+function formatControlTree(dump: Ui5ControlDump[], options?: { maxRows?: number }): string;
+function summarizeByType(dump: Ui5ControlDump[]): { type: string; count: number }[];
+```
+
+Attached to failing tests automatically by this package's `test` fixture - see
+[docs/diagnostics.md](diagnostics.md).
+
 ## OData mocking
 
 ```ts
@@ -373,6 +585,20 @@ function mockODataError(
   urlPattern: string | RegExp,
   options?: { version?: 'v2' | 'v4'; status?: number; code?: string; message?: string },
 ): Promise<void>;
+
+// The one real Fiori apps actually need - ODataModel v2 defaults to useBatch: true.
+function mockODataBatch(
+  page: Page,
+  urlPattern: string | RegExp,
+  parts: MockODataBatchPart[], // matched positionally to the embedded requests
+  options?: { version?: 'v2' | 'v4' },
+): Promise<void>;
+
+interface MockODataBatchPart {
+  data?: unknown; // array = collection, object = single entity
+  status?: number;
+  raw?: boolean; // skip the OData envelope
+}
 ```
 
 See [docs/odata-mocking.md](odata-mocking.md).

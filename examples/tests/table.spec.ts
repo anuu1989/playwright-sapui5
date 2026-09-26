@@ -42,6 +42,9 @@ test.describe('Ui5Table', () => {
   test('rowContaining finds a row by its visible content', async ({ page }) => {
     await page.goto(TABLE_SAMPLE_URL);
 
+    // Same wait as above: the table's root exists before its rows' data arrives, and
+    // `rowContaining` scopes its search to whatever rows exist at that moment.
+    await ui5(page).controlType('sap.m.ColumnListItem').waitFor({ timeout: 15000 });
     const table = await Ui5Table.from(ui5(page).controlType('sap.m.Table'));
 
     const row = await table.rowContaining('Titanium');
@@ -51,6 +54,7 @@ test.describe('Ui5Table', () => {
   test('row() throws a clear error for an out-of-range index', async ({ page }) => {
     await page.goto(TABLE_SAMPLE_URL);
 
+    await ui5(page).controlType('sap.m.ColumnListItem').waitFor({ timeout: 15000 });
     const table = await Ui5Table.from(ui5(page).controlType('sap.m.Table'));
 
     await expect(table.row(999999)).rejects.toThrow(/out of range/);

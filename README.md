@@ -46,6 +46,13 @@ asynchronously as data binds and routes change, and shows/hides busy indicators 
 - **`Ui5Select` and `Ui5DatePicker`** - pick from a dropdown whose options aren't in the DOM until
   it opens (and whose clickable entries carry no keys), and set dates without hardcoding a
   locale's display format or tripping over the ISO-string timezone shift.
+- **`Ui5VariantManagement` and `Ui5FlexibleColumnLayout`** - read and switch a list report's saved
+  variants, and read the Fiori multi-column shell's real layout state (which the DOM can't tell
+  you, since all three columns always exist in the markup).
+- **`Ui5Performance` and `Ui5Navigation`** - measure how long the app takes to actually become
+  usable (not just to `load`), and jump straight to a route instead of clicking through to it.
+- **Automatic failure diagnostics** - every failing test gets the SAPUI5 control tree attached to
+  its report: what was actually rendered, of what type, with what text. No opt-in required.
 - **Four real, free demo-app walkthroughs** - a complete Fiori Elements List Report + Object Page,
   classic master-detail navigation, `sap.m.PlanningCalendar`, and a different app shell
   (`sap.tnt.ToolPage`) - see [docs/demo-apps.md](docs/demo-apps.md).
@@ -136,6 +143,11 @@ export class CartPage extends Ui5Page {
 | [docs/value-help-dialog.md](docs/value-help-dialog.md)               | `Ui5ValueHelpDialog` - opening and selecting from a value help ("F4 help") dialog                                                             |
 | [docs/i18n.md](docs/i18n.md)                                         | `Ui5I18n` - assert using the app's own translated texts instead of hardcoded strings                                                          |
 | [docs/model-data.md](docs/model-data.md)                             | `Ui5Model` - assert on the app's real model data, not formatted display text                                                                  |
+| [docs/performance.md](docs/performance.md)                           | `Ui5Performance` - how long the app takes to become usable, not just to load                                                                  |
+| [docs/navigation.md](docs/navigation.md)                             | `Ui5Navigation` - hash routing: jump straight to a route, confirm one happened                                                                |
+| [docs/diagnostics.md](docs/diagnostics.md)                           | The control tree attached to every failure - what was actually on the page                                                                    |
+| [docs/variant-management.md](docs/variant-management.md)             | `Ui5VariantManagement` - a list report's saved filter/column configurations                                                                   |
+| [docs/flexible-column-layout.md](docs/flexible-column-layout.md)     | `Ui5FlexibleColumnLayout` - the one/two/three-column Fiori shell                                                                              |
 | [docs/form-inputs.md](docs/form-inputs.md)                           | `Ui5Select` / `Ui5DatePicker` - dropdowns and dates, without the usual flakiness                                                              |
 | [docs/messages.md](docs/messages.md)                                 | `Ui5MessageToast` (race-free toast assertions) and `Ui5Messages` (validation/backend errors)                                                  |
 | [docs/demo-apps.md](docs/demo-apps.md)                               | Four real, free demo apps (Fiori Elements, master-detail, PlanningCalendar, a different shell)                                                |
@@ -193,7 +205,7 @@ npx playwright install chromium
 npm test
 ```
 
-This runs all 24 files in [`examples/tests/`](examples/tests/) - covering basic navigation, form
+This runs all 27 files in [`examples/tests/`](examples/tests/) - covering basic navigation, form
 filling, multi-step Page Object flows, data-driven tests, self-healing locators, network mocking,
 state inspection, accessibility, visual regression, custom UI5 matchers, tables, dialogs, OData
 mocking, testing an app embedded in an iframe, SmartFilterBar/SmartTable, grid tables, value help

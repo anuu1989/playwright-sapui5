@@ -1030,6 +1030,216 @@ export function bridgeScript(): void {
   }
 
   /**
+   * Reads a variant management control's saved variants and which one is active. Covers both
+   * `sap.ui.comp.smartvariants.SmartVariantManagement` (the Fiori Elements one, keyed by
+   * `getCurrentVariantKey`/`getVariantItems`) and the newer `sap.m.VariantManagement` it wraps
+   * (`getSelectedKey`/`getItems`) - the two expose the same concept under different method names,
+   * which is exactly the sort of thing a test shouldn't have to branch on. Backs
+   * `Ui5VariantManagement` - see docs/variant-management.md.
+   */
+  function getVariantInfo(id: string) {
+    const el = findByExactId(id);
+    if (!el) return { found: false, currentKey: undefined, variants: [] };
+
+    function safe(getterName: string) {
+      try {
+        return typeof el[getterName] === 'function' ? el[getterName]() : undefined;
+      } catch {
+        return undefined;
+      }
+    }
+
+    // `getCurrentVariantKey` is the SmartVariantManagement spelling; `getSelectedKey` the
+    // sap.m.VariantManagement one.
+    const currentKey = safe('getCurrentVariantKey') ?? safe('getSelectedKey');
+    const rawItems = safe('getVariantItems') ?? safe('getItems') ?? [];
+
+    let variants: { key: string | undefined; text: string | undefined }[] = [];
+    try {
+      variants = rawItems.map((item: any) => ({
+        key: typeof item.getKey === 'function' ? item.getKey() : undefined,
+        // Older variant items expose `text`, newer ones `title`.
+        text:
+          typeof item.getText === 'function'
+            ? item.getText()
+            : typeof item.getTitle === 'function'
+              ? item.getTitle()
+              : undefined,
+      }));
+    } catch {
+      variants = [];
+    }
+
+    return { found: true, currentKey, variants };
+  }
+
+  /**
+   * Switches to a saved variant by key. Prefers the control's own `activateVariant()`, which runs
+   * the full apply logic (restoring filters, columns, sort order and firing the events the app
+   * listens for) rather than just moving a selection marker - `setCurrentVariantKey`/
+   * `setSelectedKey` are the fallbacks for controls that don't expose it.
+   */
+  function selectVariant(id: string, key: string) {
+    const el = findByExactId(id);
+    if (!el) return { found: false, ok: false };
+    try {
+      if (typeof el.activateVariant === 'function') {
+        el.activateVariant(key);
+      } else if (typeof el.setCurrentVariantKey === 'function') {
+        el.setCurrentVariantKey(key);
+      } else if (typeof el.setSelectedKey === 'function') {
+        el.setSelectedKey(key);
+      } else {
+        return { found: true, ok: false, error: 'control exposes no way to activate a variant' };
+      }
+      return { found: true, ok: true };
+    } catch (e) {
+      return { found: true, ok: false, error: e instanceof Error ? e.message : String(e) };
+    }
+  }
+
+  /**
+   * Reads a `sap.f.FlexibleColumnLayout`'s state - the three-column shell behind most modern Fiori
+   * list-detail-detail apps. `getLayout()` returns SAPUI5's own layout enum (`'OneColumn'`,
+   * `'TwoColumnsMidExpanded'`, `'ThreeColumnsEndExpanded'`, ...), which is the honest answer to
+   * "how many columns are showing right now" - a question the DOM answers only very indirectly,
+   * since all three columns exist in the markup regardless and are sized by CSS. Backs
+   * `Ui5FlexibleColumnLayout` - see docs/flexible-column-layout.md.
+   */
+  function getFlexibleColumnLayoutInfo(id: string) {
+    const el = findByExactId(id);
+    if (!el || typeof el.getLayout !== 'function') {
+      return {
+        found: false,
+        layout: undefined,
+        beginPage: undefined,
+        midPage: undefined,
+        endPage: undefined,
+      };
+    }
+    function currentPageId(getterName: string) {
+      try {
+        const page = typeof el[getterName] === 'function' ? el[getterName]() : null;
+        return page && typeof page.getId === 'function' ? page.getId() : undefined;
+      } catch {
+        return undefined;
+      }
+    }
+    let layout: string | undefined;
+    try {
+      layout = el.getLayout();
+    } catch {
+      layout = undefined;
+    }
+    return {
+      found: true,
+      layout,
+      beginPage: currentPageId('getCurrentBeginColumnPage'),
+      midPage: currentPageId('getCurrentMidColumnPage'),
+      endPage: currentPageId('getCurrentEndColumnPage'),
+    };
+  }
+
+  /** Sets a `sap.f.FlexibleColumnLayout`'s layout directly - the escape hatch for putting the
+   * shell into a specific column arrangement without clicking through whatever navigation
+   * normally produces it. Backs `Ui5FlexibleColumnLayout.setLayout()`. */
+  function setFlexibleColumnLayout(id: string, layout: string) {
+    const el = findByExactId(id);
+    if (!el || typeof el.setLayout !== 'function') return { found: false, ok: false };
+    try {
+      el.setLayout(layout);
+      return { found: true, ok: true };
+    } catch (e) {
+      return { found: true, ok: false, error: e instanceof Error ? e.message : String(e) };
+    }
+  }
+
+  /**
+   * Collects load/performance numbers for the current document. Backs `Ui5Performance.metrics()` -
+   * see docs/performance.md.
+   *
+   * The browser's own Navigation Timing covers the page load, but the number that actually matters
+   * for a SAPUI5 app isn't there: UI5 bootstraps *after* `load`, pulling in dozens of library
+   * modules before a single control renders, so `loadEvent` can be fast while the app is still
+   * blank. `ui5ResourceCount` and `controlCount` are the SAPUI5-side complement - how much the
+   * framework pulled in, and how much it actually built.
+   */
+  function getPerformanceMetrics() {
+    const out: Record<string, any> = {
+      responseEndMs: undefined,
+      domContentLoadedMs: undefined,
+      loadEventMs: undefined,
+      resourceCount: undefined,
+      ui5ResourceCount: undefined,
+      controlCount: undefined,
+    };
+    try {
+      const nav = performance.getEntriesByType('navigation')[0] as any;
+      if (nav) {
+        out.responseEndMs = Math.round(nav.responseEnd);
+        out.domContentLoadedMs = Math.round(nav.domContentLoadedEventEnd);
+        out.loadEventMs = Math.round(nav.loadEventEnd);
+      }
+    } catch {
+      // Navigation Timing not available - leave the fields undefined
+    }
+    try {
+      const resources = performance.getEntriesByType('resource');
+      out.resourceCount = resources.length;
+      out.ui5ResourceCount = resources.filter((r: any) =>
+        /sap-ui|\/resources\//.test(r.name),
+      ).length;
+    } catch {
+      // ignore
+    }
+    try {
+      out.controlCount = getAllElements().length;
+    } catch {
+      // ignore
+    }
+    return out;
+  }
+
+  /** The current URL hash. SAPUI5 apps are hash-routed, so this - not the path - is what
+   * identifies the screen you're on. Backs `Ui5Navigation.hash()`. */
+  function getHash(): string {
+    try {
+      return location.hash;
+    } catch {
+      return '';
+    }
+  }
+
+  /**
+   * Navigates using the app's **own router** (`component.getRouter().navTo(...)`) rather than by
+   * rewriting the URL. That matters: `navTo` runs the app's real routing logic - matched handlers,
+   * view loading, the browser-history entry it expects - whereas assigning `location.hash` only
+   * *looks* the same and can leave an app that listens for router events half-initialized.
+   * Backs `Ui5Navigation.navTo()`.
+   */
+  function routerNavTo(routeName: string, parameters?: Record<string, unknown>) {
+    try {
+      const ComponentModule =
+        w.sap && w.sap.ui && typeof w.sap.ui.require === 'function'
+          ? w.sap.ui.require('sap/ui/core/Component')
+          : null;
+      if (!ComponentModule || !ComponentModule.registry) return { found: false, ok: false };
+      const all = ComponentModule.registry.all();
+      for (const id of Object.keys(all)) {
+        const component = all[id];
+        const router = typeof component.getRouter === 'function' ? component.getRouter() : null;
+        if (router && typeof router.navTo === 'function') {
+          router.navTo(routeName, parameters || {});
+          return { found: true, ok: true };
+        }
+      }
+      return { found: false, ok: false };
+    } catch (e) {
+      return { found: true, ok: false, error: e instanceof Error ? e.message : String(e) };
+    }
+  }
+
+  /**
    * Every currently-rendered control that reports itself as open right now, via SAPUI5's own
    * `isOpen()` method - both `sap.m.Dialog` and `sap.m.Popover` (and anything else that happens
    * to implement the same method) are covered by this one check, with no need to enumerate
@@ -1195,4 +1405,11 @@ export function bridgeScript(): void {
   bridge.closeSelect = closeSelect;
   bridge.setDatePickerDate = setDatePickerDate;
   bridge.getDatePickerDate = getDatePickerDate;
+  bridge.getVariantInfo = getVariantInfo;
+  bridge.selectVariant = selectVariant;
+  bridge.getFlexibleColumnLayoutInfo = getFlexibleColumnLayoutInfo;
+  bridge.setFlexibleColumnLayout = setFlexibleColumnLayout;
+  bridge.getPerformanceMetrics = getPerformanceMetrics;
+  bridge.getHash = getHash;
+  bridge.routerNavTo = routerNavTo;
 }

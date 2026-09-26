@@ -36,12 +36,22 @@ export { Ui5MessageToast } from './core/Ui5MessageToast';
 export { Ui5Messages } from './core/Ui5Messages';
 export { Ui5Select } from './core/Ui5Select';
 export { Ui5DatePicker } from './core/Ui5DatePicker';
+export { Ui5VariantManagement } from './core/Ui5VariantManagement';
+export { Ui5FlexibleColumnLayout } from './core/Ui5FlexibleColumnLayout';
+export { Ui5Performance } from './core/Ui5Performance';
+export { Ui5Navigation } from './core/Ui5Navigation';
+export { captureControlTree, formatControlTree, summarizeByType } from './core/diagnostics';
 export { waitForUi5, waitForUi5Core } from './core/waits';
 export { findUi5Frame } from './core/findUi5Frame';
 export type { FindUi5FrameOptions } from './core/findUi5Frame';
 export { test, expect } from './fixtures/test';
 export { generatePageObjectSource } from './generator/generatePageObjectSource';
-export { mockODataCollection, mockODataEntity, mockODataError } from './core/odataMock';
+export {
+  mockODataCollection,
+  mockODataEntity,
+  mockODataError,
+  mockODataBatch,
+} from './core/odataMock';
 export type {
   Ui5ControlDump,
   Ui5ControlInfo,
@@ -63,9 +73,15 @@ export type {
   Ui5SelectItem,
   Ui5SelectInfo,
   Ui5DatePickerValue,
+  Ui5Variant,
+  Ui5VariantInfo,
+  Ui5FlexibleColumnLayoutInfo,
+  Ui5PerformanceMetrics,
+  Ui5BootstrapTimings,
 } from './core/types';
 export type {
   ODataVersion,
   MockODataCollectionOptions,
   MockODataErrorOptions,
+  MockODataBatchPart,
 } from './core/odataMock';

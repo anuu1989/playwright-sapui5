@@ -1,5 +1,5 @@
 import { test, expect } from '../../src';
-import { ui5, Ui5SmartFilterBar, Ui5SmartTable, Ui5Table } from '../../src';
+import { ui5, Ui5SmartFilterBar, Ui5SmartTable, Ui5Table, Ui5VariantManagement } from '../../src';
 
 // A real, complete Fiori Elements app from the SAPUI5 SDK's own "Demo Apps" catalog - not an
 // isolated single-control sample like the rest of examples/tests/, but a full smart-template-
@@ -55,5 +55,31 @@ test.describe('Fiori Elements List Report + Object Page (Manage Products)', () =
     // same as any other tab control.
     await ui5(page).text('Product Information', { controlType: 'sap.m.IconTabFilter' }).click();
     await expect(await ui5(page).text('Technical Data').resolve()).toBeVisible();
+  });
+
+  test('variant management: read the saved variants and the active one', async ({ page }) => {
+    await page.goto(MANAGE_PRODUCTS_URL);
+
+    // Every Fiori list report has this control at the top - the "Standard" dropdown that saves
+    // filter/column/sort configurations. SAPUI5 stacks two controls here with the same concept
+    // under different method names; Ui5VariantManagement reads whichever one it's given.
+    const variantManagement = ui5(page).controlType(
+      'sap.ui.comp.smartvariants.SmartVariantManagement',
+    );
+    await variantManagement.waitFor({ timeout: 20000 });
+
+    const variants = await Ui5VariantManagement.variants(page, variantManagement);
+    expect(variants).toEqual(expect.arrayContaining([{ key: '*standard*', text: 'Standard' }]));
+
+    expect(await Ui5VariantManagement.currentName(page, variantManagement)).toBe('Standard');
+
+    // Activating a variant re-applies its whole configuration, so selectByName waits for the app
+    // to settle afterwards rather than returning into a mid-rebind page.
+    await Ui5VariantManagement.selectByName(page, variantManagement, 'Standard');
+    expect(await Ui5VariantManagement.currentKey(page, variantManagement)).toBe('*standard*');
+
+    await expect(
+      Ui5VariantManagement.selectByName(page, variantManagement, 'No Such Variant'),
+    ).rejects.toThrow(/no variant named/);
   });
 });

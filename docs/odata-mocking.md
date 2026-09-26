@@ -115,3 +115,44 @@ await page1.open();
 
 await expect(page1.product('Widget')).toBeVisible();
 ```
+
+## Mocking `$batch` (what real Fiori apps actually send)
+
+Everything above intercepts tidy individual requests like `GET /Products`. A real Fiori app
+usually sends none of those: `sap.ui.model.odata.v2.ODataModel` defaults to **`useBatch: true`**,
+so it issues **one `POST` to `/$batch`** whose body is a multipart MIME document containing
+several embedded HTTP requests, and expects a multipart response containing the matching embedded
+responses.
+
+```ts
+await mockODataBatch(page, '**/svc/$batch', [
+  { data: [{ ProductID: 'HT-1', Name: 'Notebook' }] }, // answers the 1st embedded request
+  { data: { ProductID: 'HT-1', Stock: 42 } }, // answers the 2nd
+]);
+```
+
+`parts` are matched **positionally** to the requests inside the batch the app sent. Each part takes
+`data` (an array for a collection, an object for a single entity - the OData envelope is applied
+for you), an optional `status`, and `raw: true` to skip the envelope entirely.
+
+### Why this needs a helper
+
+The response format is strict in ways that are easy to get subtly wrong: boundary markers echoed
+in the `Content-Type` header, a full HTTP status line and headers _inside_ each part, a blank line
+before each body, and **CRLF** line endings throughout - a lone `\n` produces something that looks
+correct in a terminal and fails to parse in the app.
+
+### How it's verified
+
+Unlike the other helpers on this page, `mockODataBatch` is tested end to end against a **real
+`sap.ui.model.odata.v2.ODataModel` with `useBatch: true`** - the model loads metadata, issues a
+genuine batch request, and the test asserts it produced real entities from the mocked response.
+For a hand-built multipart document, nothing short of UI5's own parser consuming it would actually
+prove it works. See the last test in
+[`examples/tests/odata-mocking.spec.ts`](../examples/tests/odata-mocking.spec.ts).
+
+### Scope
+
+Only the read side is generated. Change sets - the nested `multipart/mixed` blocks a batch uses to
+carry `POST`/`PUT`/`DELETE` - aren't produced; mock those at a higher level, or assert on the
+outgoing request instead.

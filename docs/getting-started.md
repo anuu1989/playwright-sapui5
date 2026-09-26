@@ -179,6 +179,15 @@ more patterns, and [docs/auto-wait.md](auto-wait.md) for exactly what "settle" m
   test keeps passing in every language.
 - [docs/model-data.md](model-data.md) - `Ui5Model`, for asserting on the app's real data instead
   of formatted, localized, possibly-truncated display text.
+- [docs/performance.md](performance.md) - `Ui5Performance`, for measuring how long the app really
+  takes to become usable (the browser's load timings badly understate it).
+- [docs/navigation.md](navigation.md) - `Ui5Navigation`, for jumping straight to a route.
+- [docs/diagnostics.md](diagnostics.md) - the SAPUI5 control tree, attached to every failing test
+  automatically: what was really on the page when the locator gave up.
+- [docs/variant-management.md](variant-management.md) - `Ui5VariantManagement`, for a list
+  report's saved filter/column configurations.
+- [docs/flexible-column-layout.md](flexible-column-layout.md) - `Ui5FlexibleColumnLayout`, for
+  the multi-column Fiori shell.
 - [docs/form-inputs.md](form-inputs.md) - `Ui5Select` and `Ui5DatePicker`, for dropdowns whose
   options aren't in the DOM until opened, and dates without locale/timezone traps.
 - [docs/messages.md](messages.md) - `Ui5MessageToast` and `Ui5Messages`, for toasts that vanish
@@ -209,7 +218,7 @@ npx playwright install chromium
 npm test
 ```
 
-This runs all 24 files in [`examples/tests/`](../examples/tests/) against real, live public
+This runs all 27 files in [`examples/tests/`](../examples/tests/) against real, live public
 SAPUI5 demo apps - covering basic navigation, form filling, multi-step Page Object flows,
 data-driven tests, self-healing locators, network mocking, state inspection, accessibility, visual
 regression, custom UI5 matchers, tables, dialogs, OData mocking, testing an app embedded in an

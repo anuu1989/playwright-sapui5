@@ -124,3 +124,100 @@ export async function mockODataError(
     }),
   );
 }
+
+/** One embedded response inside a mocked `$batch` reply - the result the app should see for the
+ * corresponding request in the batch it sent. `status` defaults to 200. See `mockODataBatch`. */
+export interface MockODataBatchPart {
+  /** The JSON payload for this part. Wrapped in the OData envelope automatically unless
+   * `raw: true`. For a collection pass an array; for a single entity pass an object. */
+  data?: unknown;
+  status?: number;
+  /** Skip the `{ d: ... }` / `{ value: ... }` envelope and send `data` exactly as given - for
+   * responses that aren't entity reads (a function import, a `$count`, an error body). */
+  raw?: boolean;
+}
+
+/**
+ * Mocks an OData **`$batch`** response - the single hardest part of a real Fiori app to fake.
+ *
+ * Why it needs its own function: `sap.ui.model.odata.v2.ODataModel` defaults to `useBatch: true`,
+ * so a production S/4HANA-style app doesn't issue the tidy `GET /Products` requests that
+ * `mockODataCollection` intercepts. It issues **one `POST` to `/$batch`** whose body is a
+ * multipart MIME document containing several embedded HTTP requests, and expects a multipart
+ * response containing the matching embedded HTTP responses - each with its own status line,
+ * headers, blank line and body, separated by generated boundary markers, with CRLF line endings
+ * that the parser is strict about. Hand-rolling that inside a `page.route()` handler is an
+ * afternoon of fiddling with `\r\n`; this builds it.
+ *
+ * `parts` are matched positionally to the requests inside the batch the app sent - the first part
+ * answers the first embedded request, and so on.
+ *
+ * ```ts
+ * await mockODataBatch(page, '**\/$batch', [
+ *   { data: [{ ProductID: 'HT-1000', Name: 'Notebook' }] }, // first embedded GET
+ *   { data: { ProductID: 'HT-1000', Stock: 42 } },          // second embedded GET
+ * ]);
+ * ```
+ *
+ * Only the read-side (`GET` inside the batch) shape is generated. Change sets - the nested
+ * `multipart/mixed` blocks a batch uses for POST/PUT/DELETE - aren't produced here; mock those at
+ * a higher level, or assert on the outgoing request instead.
+ */
+export async function mockODataBatch(
+  page: Page,
+  urlPattern: string | RegExp,
+  parts: MockODataBatchPart[],
+  options: { version?: ODataVersion } = {},
+): Promise<void> {
+  const version = options.version ?? 'v2';
+  // The boundary only has to be a token that doesn't occur in any part's body, and it has to be
+  // echoed in the Content-Type header - that pairing is what lets the parser find the parts.
+  const boundary = `batchresponse_${Math.random().toString(36).slice(2, 10)}`;
+  // OData/MIME is specified in terms of CRLF, and UI5's parser is strict about it - a lone \n
+  // here produces a response that looks right in a terminal and fails to parse in the app.
+  const CRLF = '\r\n';
+
+  const body =
+    parts
+      .map((part) => {
+        const status = part.status ?? 200;
+        const payload = part.raw
+          ? part.data
+          : Array.isArray(part.data)
+            ? envelopeCollection(part.data as unknown[], version)
+            : envelopeEntity(part.data ?? {}, version);
+        const json = JSON.stringify(payload);
+        return [
+          `--${boundary}`,
+          'Content-Type: application/http',
+          'Content-Transfer-Encoding: binary',
+          '',
+          `HTTP/1.1 ${status} ${status === 200 ? 'OK' : 'Error'}`,
+          'Content-Type: application/json',
+          `Content-Length: ${json.length}`,
+          '',
+          json,
+          '',
+        ].join(CRLF);
+      })
+      .join('') + `--${boundary}--${CRLF}`;
+
+  await page.route(urlPattern, (route) =>
+    route.fulfill({
+      status: 202, // what a real OData V2 gateway returns for an accepted batch
+      headers: { 'content-type': `multipart/mixed; boundary=${boundary}` },
+      body,
+    }),
+  );
+}
+
+/** The OData envelope a collection comes wrapped in - V2 nests it under `d.results`, V4 under
+ * `value`. Shared by the batch builder above and mirroring what `mockODataCollection` sends. */
+function envelopeCollection(data: unknown[], version: ODataVersion): unknown {
+  return version === 'v2' ? { d: { results: data } } : { value: data };
+}
+
+/** The same for a single entity: V2 nests it under `d`, V4 returns it at the top level. */
+function envelopeEntity(data: unknown, version: ODataVersion): unknown {
+  return version === 'v2' ? { d: data } : data;
+}

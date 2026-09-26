@@ -7,14 +7,17 @@ import type {
   Ui5ControlInfo,
   Ui5DatePickerValue,
   Ui5FilterDataResult,
+  Ui5FlexibleColumnLayoutInfo,
   Ui5GridTableInfo,
   Ui5I18nResult,
   Ui5MessageInfo,
   Ui5MessageToastRecord,
   Ui5ModelPropertyResult,
+  Ui5PerformanceMetrics,
   Ui5PropertyResult,
   Ui5SelectInfo,
   Ui5SmartTableInfo,
+  Ui5VariantInfo,
   Ui5TextResult,
 } from './types';
 
@@ -454,5 +457,80 @@ export class Ui5Bridge {
   static async getDatePickerDate(target: Ui5Target, id: string): Promise<Ui5DatePickerValue> {
     await this.ensure(target);
     return target.evaluate(({ id }) => (window as any).__pwSapUi5__.getDatePickerDate(id), { id });
+  }
+
+  /** A variant management control's saved variants and active one. Used by
+   * `Ui5VariantManagement`. */
+  static async getVariantInfo(target: Ui5Target, id: string): Promise<Ui5VariantInfo> {
+    await this.ensure(target);
+    return target.evaluate(({ id }) => (window as any).__pwSapUi5__.getVariantInfo(id), { id });
+  }
+
+  /** A `sap.f.FlexibleColumnLayout`'s layout and current pages. Used by
+   * `Ui5FlexibleColumnLayout`. */
+  static async getFlexibleColumnLayoutInfo(
+    target: Ui5Target,
+    id: string,
+  ): Promise<Ui5FlexibleColumnLayoutInfo> {
+    await this.ensure(target);
+    return target.evaluate(
+      ({ id }) => (window as any).__pwSapUi5__.getFlexibleColumnLayoutInfo(id),
+      { id },
+    );
+  }
+
+  /** Load/performance numbers for the current document. Used by `Ui5Performance`. */
+  static async getPerformanceMetrics(target: Ui5Target): Promise<Ui5PerformanceMetrics> {
+    await this.ensure(target);
+    return target.evaluate(() => (window as any).__pwSapUi5__.getPerformanceMetrics());
+  }
+
+  /** The current URL hash - what identifies the screen in a hash-routed SAPUI5 app. Used by
+   * `Ui5Navigation.hash()`. */
+  static async getHash(target: Ui5Target): Promise<string> {
+    await this.ensure(target);
+    return target.evaluate(() => (window as any).__pwSapUi5__.getHash());
+  }
+
+  /** Navigates via the app's own router, running its real routing logic. Used by
+   * `Ui5Navigation.navTo()`. */
+  static async routerNavTo(
+    target: Ui5Target,
+    routeName: string,
+    parameters?: Record<string, unknown>,
+  ): Promise<Ui5BridgeActionResult> {
+    await this.ensure(target);
+    return target.evaluate(
+      ({ routeName, parameters }) =>
+        (window as any).__pwSapUi5__.routerNavTo(routeName, parameters),
+      { routeName, parameters },
+    );
+  }
+
+  /** Sets a `sap.f.FlexibleColumnLayout`'s layout. Used by `Ui5FlexibleColumnLayout.setLayout()`. */
+  static async setFlexibleColumnLayout(
+    target: Ui5Target,
+    id: string,
+    layout: string,
+  ): Promise<Ui5BridgeActionResult> {
+    await this.ensure(target);
+    return target.evaluate(
+      ({ id, layout }) => (window as any).__pwSapUi5__.setFlexibleColumnLayout(id, layout),
+      { id, layout },
+    );
+  }
+
+  /** Activates a saved variant by key, applying its filters/columns/sorting. Used by
+   * `Ui5VariantManagement.selectByKey()`. */
+  static async selectVariant(
+    target: Ui5Target,
+    id: string,
+    key: string,
+  ): Promise<Ui5BridgeActionResult> {
+    await this.ensure(target);
+    return target.evaluate(({ id, key }) => (window as any).__pwSapUi5__.selectVariant(id, key), {
+      id,
+      key,
+    });
   }
 }

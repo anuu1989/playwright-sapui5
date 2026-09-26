@@ -1,6 +1,7 @@
 import { test as base, expect as baseExpect } from '@playwright/test';
 import { waitForUi5 } from '../core/waits';
 import { ui5Matchers } from '../core/matchers';
+import { captureControlTree } from '../core/diagnostics';
 
 /**
  * Drop-in replacement for `@playwright/test`'s `test`. The `page` fixture it provides
@@ -23,7 +24,7 @@ import { ui5Matchers } from '../core/matchers';
  * override - only the `page` fixture is customized below; every other fixture (`context`,
  * `browser`, `request`, ...) passes straight through unchanged.
  */
-export const test = base.extend({
+export const test = base.extend<{ ui5Diagnostics: void }>({
   // Fixtures in Playwright are written as `async ({ dependencies }, use) => { ... }` - `{ page }`
   // here destructures the *original*, unmodified `page` fixture (this is why the parameter name
   // matches the property being overridden - Playwright resolves it from the base fixture, not
@@ -44,6 +45,42 @@ export const test = base.extend({
     // Hand the (event-listener-augmented, but otherwise identical) `page` to the test.
     await use(page);
   },
+
+  /**
+   * Attaches the SAPUI5 control tree to any test that fails.
+   *
+   * `[fixtureFn, { auto: true }]` is Playwright's way of saying "run this for every test, even
+   * though nothing asked for it by name" - so this needs no opt-in and no change to existing
+   * tests. Everything before `await use()` is setup (nothing here); everything after is teardown,
+   * which by then can read `testInfo.status`.
+   *
+   * Why this is worth doing automatically: when a locator fails, Playwright tells you what *isn't*
+   * on the page (`resolved to 0 elements`) and shows you a screenshot. Neither answers the
+   * question you actually have with a UI5 app - *which controls were there, of what type, with
+   * what text?* - because a SAPUI5 control's identity lives in its control tree, not in the DOM
+   * or in a picture of it. Recovering that by hand means re-running with `--headed`, pausing at
+   * exactly the right moment, and poking at `sap.ui.getCore()` in a console. Attaching it here
+   * means it's just in the report, for the run that already failed.
+   */
+  ui5Diagnostics: [
+    async ({ page }, use, testInfo) => {
+      await use();
+
+      // `expectedStatus` rather than a literal 'passed': a test marked `test.fail()` is *supposed*
+      // to fail, and dumping diagnostics for it would be noise.
+      if (testInfo.status === testInfo.expectedStatus) return;
+
+      const { dump, text } = await captureControlTree(page);
+      await testInfo.attach('ui5-control-tree.txt', { body: text, contentType: 'text/plain' });
+      if (dump.length > 0) {
+        await testInfo.attach('ui5-control-tree.json', {
+          body: JSON.stringify(dump, null, 2),
+          contentType: 'application/json',
+        });
+      }
+    },
+    { auto: true },
+  ],
 });
 
 // `baseExpect.extend({ ... })` is the exact same mechanism as `base.extend({ ... })` above, just
