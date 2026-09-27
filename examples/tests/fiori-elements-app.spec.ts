@@ -1,5 +1,13 @@
 import { test, expect } from '../../src';
-import { ui5, Ui5SmartFilterBar, Ui5SmartTable, Ui5Table, Ui5VariantManagement } from '../../src';
+import {
+  ui5,
+  Ui5IconTabBar,
+  Ui5ObjectPage,
+  Ui5SmartFilterBar,
+  Ui5SmartTable,
+  Ui5Table,
+  Ui5VariantManagement,
+} from '../../src';
 
 // A real, complete Fiori Elements app from the SAPUI5 SDK's own "Demo Apps" catalog - not an
 // isolated single-control sample like the rest of examples/tests/, but a full smart-template-
@@ -55,6 +63,59 @@ test.describe('Fiori Elements List Report + Object Page (Manage Products)', () =
     // same as any other tab control.
     await ui5(page).text('Product Information', { controlType: 'sap.m.IconTabFilter' }).click();
     await expect(await ui5(page).text('Technical Data').resolve()).toBeVisible();
+  });
+
+  test('Ui5ObjectPage and Ui5IconTabBar read and drive the same Object Page', async ({ page }) => {
+    await page.goto(MANAGE_PRODUCTS_URL);
+
+    const filterBar = await Ui5SmartFilterBar.from(
+      ui5(page).controlType('sap.ui.comp.smartfilterbar.SmartFilterBar'),
+    );
+    const smartTable = await Ui5SmartTable.from(
+      ui5(page).controlType('sap.ui.comp.smarttable.SmartTable'),
+    );
+    await filterBar.search({ timeout: 20000 });
+    const table = await Ui5Table.from(await smartTable.innerTableLocator());
+    await (await table.row(0)).click();
+
+    const objectPage = ui5(page).controlType('sap.uxap.ObjectPageLayout');
+    await objectPage.waitFor({ timeout: 15000 });
+
+    const sections = await Ui5ObjectPage.sections(page, objectPage);
+    expect(sections.map((s) => s.title)).toEqual([
+      'Header',
+      'Supplier Information',
+      'Product Information',
+      'Reviews',
+      'Inventory Information',
+    ]);
+
+    const target = sections.find((s) => s.title === 'Product Information')!;
+    await Ui5ObjectPage.scrollToSection(page, objectPage, 'Product Information');
+    expect(await Ui5ObjectPage.selectedSection(page, objectPage)).toBe(target.id);
+
+    // This Object Page's anchor bar renders as a bare `sap.m.IconTabHeader`, not the full
+    // `sap.m.IconTabBar` - see docs/icon-tab-bar.md. The SDK's own documentation shell around
+    // this app renders an unrelated IconTabHeader of its own (its demo-navigation chrome), so
+    // `.id(...)` scopes to the Object Page's own one by the local id SAPUI5 gives it -
+    // `objectPage-anchBar`, the whole segment after the last `--`, not just `anchBar` (id-suffix
+    // matching requires the full `--<localId>` segment; see docs/locators.md).
+    const anchorBar = ui5(page).id('objectPage-anchBar');
+    const items = await Ui5IconTabBar.items(page, anchorBar);
+    expect(items.map((item) => item.text)).toEqual([
+      'Supplier Information',
+      'Product Information',
+      'Reviews',
+      'Inventory Information',
+    ]);
+    // scrollToSection above already switched the active tab too - both controls read the same
+    // underlying state.
+    expect(await Ui5IconTabBar.selectedKey(page, anchorBar)).toBe(target.id);
+
+    const reviews = items.find((item) => item.text === 'Reviews')!;
+    await Ui5IconTabBar.selectByKey(page, anchorBar, reviews.key!);
+    expect(await Ui5IconTabBar.selectedKey(page, anchorBar)).toBe(reviews.key);
+    expect(await Ui5ObjectPage.selectedSection(page, objectPage)).toBe(reviews.key);
   });
 
   test('variant management: read the saved variants and the active one', async ({ page }) => {

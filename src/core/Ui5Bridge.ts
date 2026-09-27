@@ -9,15 +9,18 @@ import type {
   Ui5FilterDataResult,
   Ui5FlexibleColumnLayoutInfo,
   Ui5GridTableInfo,
+  Ui5IconTabBarInfo,
   Ui5ManifestInfo,
   Ui5I18nResult,
   Ui5MessageInfo,
   Ui5MessageToastRecord,
   Ui5ModelPropertyResult,
+  Ui5ObjectPageInfo,
   Ui5PerformanceMetrics,
   Ui5PropertyResult,
   Ui5SelectInfo,
   Ui5SmartTableInfo,
+  Ui5SplitAppInfo,
   Ui5VariantInfo,
   Ui5TextResult,
 } from './types';
@@ -526,6 +529,52 @@ export class Ui5Bridge {
       ({ id, layout }) => (window as any).__pwSapUi5__.setFlexibleColumnLayout(id, layout),
       { id, layout },
     );
+  }
+
+  /** A `sap.m.IconTabBar`'s tabs and current selection. Used by `Ui5IconTabBar`. */
+  static async getIconTabBarInfo(target: Ui5Target, id: string): Promise<Ui5IconTabBarInfo> {
+    await this.ensure(target);
+    return target.evaluate(({ id }) => (window as any).__pwSapUi5__.getIconTabBarInfo(id), { id });
+  }
+
+  /** The control id of the `sap.m.IconTabFilter` with this key, if any - looked up so the actual
+   * click can happen as a normal DOM click. Used by `Ui5IconTabBar.selectByKey()`. */
+  static async findIconTabBarItemIdByKey(
+    target: Ui5Target,
+    id: string,
+    key: string,
+  ): Promise<string | undefined> {
+    await this.ensure(target);
+    return target.evaluate(
+      ({ id, key }) => (window as any).__pwSapUi5__.findIconTabBarItemIdByKey(id, key),
+      { id, key },
+    );
+  }
+
+  /** A `sap.uxap.ObjectPageLayout`'s sections and current selection. Used by `Ui5ObjectPage`. */
+  static async getObjectPageInfo(target: Ui5Target, id: string): Promise<Ui5ObjectPageInfo> {
+    await this.ensure(target);
+    return target.evaluate(({ id }) => (window as any).__pwSapUi5__.getObjectPageInfo(id), { id });
+  }
+
+  /** Scrolls/switches a `sap.uxap.ObjectPageLayout` to a section by id, via the control's own
+   * `scrollToSection()`. Used by `Ui5ObjectPage.scrollToSection()`. */
+  static async scrollObjectPageToSection(
+    target: Ui5Target,
+    id: string,
+    sectionId: string,
+  ): Promise<Ui5BridgeActionResult> {
+    await this.ensure(target);
+    return target.evaluate(
+      ({ id, sectionId }) => (window as any).__pwSapUi5__.scrollObjectPageToSection(id, sectionId),
+      { id, sectionId },
+    );
+  }
+
+  /** A `sap.m.SplitApp`'s current mode and pages. Used by `Ui5SplitApp`. */
+  static async getSplitAppInfo(target: Ui5Target, id: string): Promise<Ui5SplitAppInfo> {
+    await this.ensure(target);
+    return target.evaluate(({ id }) => (window as any).__pwSapUi5__.getSplitAppInfo(id), { id });
   }
 
   /** Activates a saved variant by key, applying its filters/columns/sorting. Used by

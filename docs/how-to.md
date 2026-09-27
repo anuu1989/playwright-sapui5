@@ -19,41 +19,44 @@ import { test, expect, ui5 } from 'playwright-sapui5';
 
 ## Index
 
-| I want to…                                                                                                   |
-| ------------------------------------------------------------------------------------------------------------ |
-| [Set up a project from scratch](#how-do-i-set-up-a-project-from-scratch)                                     |
-| [Write my first test against an existing project](#how-do-i-write-my-first-test)                             |
-| [Find a control](#how-do-i-find-a-control)                                                                   |
-| [Stop a locator breaking every release](#how-do-i-stop-a-locator-breaking-every-release)                     |
-| [Track which locators are healing across a run](#how-do-i-track-which-locators-are-healing-across-a-run)     |
-| [Wait for the app to be ready](#how-do-i-wait-for-the-app-to-be-ready)                                       |
-| [Organise a growing suite](#how-do-i-organise-a-growing-suite)                                               |
-| [Assert on a control's real state](#how-do-i-assert-on-a-controls-real-state)                                |
-| [Read rows and cells from a table or list](#how-do-i-read-rows-and-cells-from-a-table-or-list)               |
-| [Handle a virtualized grid table](#how-do-i-handle-a-virtualized-grid-table)                                 |
-| [Work with a dialog](#how-do-i-work-with-a-dialog)                                                           |
-| [Use a value help (F4) dialog](#how-do-i-use-a-value-help-f4-dialog)                                         |
-| [Test a Fiori Elements list report](#how-do-i-test-a-fiori-elements-list-report)                             |
-| [Switch a saved variant](#how-do-i-switch-a-saved-variant)                                                   |
-| [Pick from a dropdown](#how-do-i-pick-from-a-dropdown)                                                       |
-| [Set a date](#how-do-i-set-a-date)                                                                           |
-| [Assert text that survives translation](#how-do-i-assert-text-that-survives-translation)                     |
-| [Assert on real data instead of display text](#how-do-i-assert-on-real-data-instead-of-display-text)         |
-| [Catch a toast that already vanished](#how-do-i-catch-a-toast-that-already-vanished)                         |
-| [Catch validation and backend errors](#how-do-i-catch-validation-and-backend-errors)                         |
-| [Deal with the multi-column Fiori shell](#how-do-i-deal-with-the-multi-column-fiori-shell)                   |
-| [Jump straight to a route](#how-do-i-jump-straight-to-a-route)                                               |
-| [Measure how slow the app is](#how-do-i-measure-how-slow-the-app-is)                                         |
-| [Work out why a test failed](#how-do-i-work-out-why-a-test-failed)                                           |
-| [Mock an OData backend](#how-do-i-mock-an-odata-backend)                                                     |
-| [Test an app inside an iframe](#how-do-i-test-an-app-inside-an-iframe)                                       |
-| [Generate tests or Page Objects from a URL](#how-do-i-generate-tests-or-page-objects-from-a-url)             |
-| [Report results to Jira](#how-do-i-report-results-to-jira)                                                   |
-| [Check that an environment is even healthy first](#how-do-i-check-that-an-environment-is-even-healthy-first) |
-| [Log in once and reuse the session](#how-do-i-log-in-once-and-reuse-the-session)                             |
-| [Point tests at dev/QA/prod](#how-do-i-point-tests-at-devqaprod)                                             |
-| [Check accessibility](#how-do-i-check-accessibility)                                                         |
-| [Catch visual regressions](#how-do-i-catch-visual-regressions)                                               |
+| I want to…                                                                                                                      |
+| ------------------------------------------------------------------------------------------------------------------------------- |
+| [Set up a project from scratch](#how-do-i-set-up-a-project-from-scratch)                                                        |
+| [Write my first test against an existing project](#how-do-i-write-my-first-test)                                                |
+| [Find a control](#how-do-i-find-a-control)                                                                                      |
+| [Stop a locator breaking every release](#how-do-i-stop-a-locator-breaking-every-release)                                        |
+| [Track which locators are healing across a run](#how-do-i-track-which-locators-are-healing-across-a-run)                        |
+| [Wait for the app to be ready](#how-do-i-wait-for-the-app-to-be-ready)                                                          |
+| [Organise a growing suite](#how-do-i-organise-a-growing-suite)                                                                  |
+| [Assert on a control's real state](#how-do-i-assert-on-a-controls-real-state)                                                   |
+| [Read rows and cells from a table or list](#how-do-i-read-rows-and-cells-from-a-table-or-list)                                  |
+| [Handle a virtualized grid table](#how-do-i-handle-a-virtualized-grid-table)                                                    |
+| [Work with a dialog](#how-do-i-work-with-a-dialog)                                                                              |
+| [Use a value help (F4) dialog](#how-do-i-use-a-value-help-f4-dialog)                                                            |
+| [Test a Fiori Elements list report](#how-do-i-test-a-fiori-elements-list-report)                                                |
+| [Switch a saved variant](#how-do-i-switch-a-saved-variant)                                                                      |
+| [Pick from a dropdown](#how-do-i-pick-from-a-dropdown)                                                                          |
+| [Set a date](#how-do-i-set-a-date)                                                                                              |
+| [Assert text that survives translation](#how-do-i-assert-text-that-survives-translation)                                        |
+| [Assert on real data instead of display text](#how-do-i-assert-on-real-data-instead-of-display-text)                            |
+| [Catch a toast that already vanished](#how-do-i-catch-a-toast-that-already-vanished)                                            |
+| [Catch validation and backend errors](#how-do-i-catch-validation-and-backend-errors)                                            |
+| [Deal with the multi-column Fiori shell](#how-do-i-deal-with-the-multi-column-fiori-shell)                                      |
+| [Read and navigate a Fiori Elements Object Page's sections](#how-do-i-read-and-navigate-a-fiori-elements-object-pages-sections) |
+| [Read the tabs and badge counts on a tab strip](#how-do-i-read-the-tabs-and-badge-counts-on-a-tab-strip)                        |
+| [Read the classic master/detail shell's state](#how-do-i-read-the-classic-masterdetail-shells-state)                            |
+| [Jump straight to a route](#how-do-i-jump-straight-to-a-route)                                                                  |
+| [Measure how slow the app is](#how-do-i-measure-how-slow-the-app-is)                                                            |
+| [Work out why a test failed](#how-do-i-work-out-why-a-test-failed)                                                              |
+| [Mock an OData backend](#how-do-i-mock-an-odata-backend)                                                                        |
+| [Test an app inside an iframe](#how-do-i-test-an-app-inside-an-iframe)                                                          |
+| [Generate tests or Page Objects from a URL](#how-do-i-generate-tests-or-page-objects-from-a-url)                                |
+| [Report results to Jira](#how-do-i-report-results-to-jira)                                                                      |
+| [Check that an environment is even healthy first](#how-do-i-check-that-an-environment-is-even-healthy-first)                    |
+| [Log in once and reuse the session](#how-do-i-log-in-once-and-reuse-the-session)                                                |
+| [Point tests at dev/QA/prod](#how-do-i-point-tests-at-devqaprod)                                                                |
+| [Check accessibility](#how-do-i-check-accessibility)                                                                            |
+| [Catch visual regressions](#how-do-i-catch-visual-regressions)                                                                  |
 
 ---
 
@@ -537,6 +540,56 @@ await Ui5FlexibleColumnLayout.setLayout(page, 'OneColumn');
 The locator argument is optional - an app essentially always has exactly one of these.
 
 → [flexible-column-layout.md](flexible-column-layout.md)
+
+### How do I read and navigate a Fiori Elements Object Page's sections?
+
+```ts
+import { Ui5ObjectPage } from 'playwright-sapui5';
+
+const objectPage = ui5(page).controlType('sap.uxap.ObjectPageLayout');
+
+const sections = await Ui5ObjectPage.sections(page, objectPage);
+await Ui5ObjectPage.scrollToSection(page, objectPage, 'Product Information');
+expect(await Ui5ObjectPage.selectedSection(page, objectPage)).toBe(
+  sections.find((s) => s.title === 'Product Information')!.id,
+);
+```
+
+Works the same whether the page renders sections as tabs or as one long scrollable page with an
+anchor bar - both are driven by the same `scrollToSection()` under the hood.
+
+→ [object-page.md](object-page.md)
+
+### How do I read the tabs and badge counts on a tab strip?
+
+```ts
+import { Ui5IconTabBar } from 'playwright-sapui5';
+
+const tabs = ui5(page).controlType('sap.m.IconTabHeader'); // what a Fiori Elements Object Page renders
+const items = await Ui5IconTabBar.items(page, tabs);
+await Ui5IconTabBar.selectByKey(page, tabs, items[1].key!);
+```
+
+**The trap:** a Fiori Elements Object Page's tab strip is a bare `sap.m.IconTabHeader`, not the
+full `sap.m.IconTabBar` - confirmed against a real one. Both work with this class; search for
+whichever one the app actually renders.
+
+→ [icon-tab-bar.md](icon-tab-bar.md)
+
+### How do I read the classic master/detail shell's state?
+
+```ts
+import { Ui5SplitApp } from 'playwright-sapui5';
+
+expect(await Ui5SplitApp.mode(page)).toBe('ShowHideMode');
+const { master, detail } = await Ui5SplitApp.currentPages(page);
+```
+
+For `sap.m.SplitApp` - the older, simpler sibling of `Ui5FlexibleColumnLayout` above, same idea: a
+hidden master page can mean "collapsed behind a toggle" rather than "not showing", and the mode
+tells you which.
+
+→ [split-app.md](split-app.md)
 
 ### How do I jump straight to a route?
 

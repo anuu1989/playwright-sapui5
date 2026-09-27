@@ -38,6 +38,9 @@ export { Ui5Select } from './core/Ui5Select';
 export { Ui5DatePicker } from './core/Ui5DatePicker';
 export { Ui5VariantManagement } from './core/Ui5VariantManagement';
 export { Ui5FlexibleColumnLayout } from './core/Ui5FlexibleColumnLayout';
+export { Ui5IconTabBar } from './core/Ui5IconTabBar';
+export { Ui5ObjectPage } from './core/Ui5ObjectPage';
+export { Ui5SplitApp } from './core/Ui5SplitApp';
 export { Ui5Performance } from './core/Ui5Performance';
 export { Ui5Navigation } from './core/Ui5Navigation';
 export { captureControlTree, formatControlTree, summarizeByType } from './core/diagnostics';
@@ -90,6 +93,11 @@ export type {
   Ui5Variant,
   Ui5VariantInfo,
   Ui5FlexibleColumnLayoutInfo,
+  Ui5IconTabItem,
+  Ui5IconTabBarInfo,
+  Ui5ObjectPageSection,
+  Ui5ObjectPageInfo,
+  Ui5SplitAppInfo,
   Ui5PerformanceMetrics,
   Ui5BootstrapTimings,
 } from './core/types';

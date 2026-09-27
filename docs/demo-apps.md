@@ -58,9 +58,12 @@ else.
 https://ui5.sap.com/test-resources/sap/m/demokit/orderbrowser/webapp/test/mockServer.html?sap-ui-theme=sap_horizon
 ```
 
-The classic `sap.m.SplitContainer`-based master-detail shell: a list of orders on one side, a
-detail pane on the other, selecting a row updates the detail pane in place - no full-page
-navigation, no route change. [`master-detail.spec.ts`](../examples/tests/master-detail.spec.ts)
+The classic master-detail navigation pattern: a list of orders on one side, a detail pane on the
+other, selecting a row updates the detail pane in place - no full-page navigation, no route
+change. (This demo's shell is currently `sap.f.FlexibleColumnLayout` - see
+[docs/flexible-column-layout.md](flexible-column-layout.md); it used to be
+`sap.m.SplitContainer`/`SplitApp`, the older shell [docs/split-app.md](split-app.md) covers.)
+[`master-detail.spec.ts`](../examples/tests/master-detail.spec.ts)
 wraps the master list with [`Ui5Table`](ui5-table.md), reads the selected row's own `title`
 property through [`Ui5Bridge`](api-reference.md#ui5bridge) (the same "control property, not
 rendered text" approach the [custom matchers](expect-matchers.md) use), and confirms the detail

@@ -74,7 +74,8 @@ interaction under test.
 
 ## Related
 
-- [docs/demo-apps.md](demo-apps.md) - the master-detail demo app, which uses the older
-  `sap.m.SplitContainer` shell instead.
+- [docs/split-app.md](split-app.md) - `sap.m.SplitApp`, the older, simpler master-detail shell.
+  (The master-detail demo app in [docs/demo-apps.md](demo-apps.md) has since moved from that shell
+  to this one - a reminder that a public demo's internals can change under you.)
 - [docs/troubleshooting.md](troubleshooting.md#an-id-locator-matches-two-elements-instead-of-one-and-playwright-refuses-to-act) -
   multi-column shells keep previous pages mounted, which is a common source of ambiguous locators.

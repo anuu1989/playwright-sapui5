@@ -199,6 +199,11 @@ more patterns, and [docs/auto-wait.md](auto-wait.md) for exactly what "settle" m
   report's saved filter/column configurations.
 - [docs/flexible-column-layout.md](flexible-column-layout.md) - `Ui5FlexibleColumnLayout`, for
   the multi-column Fiori shell.
+- [docs/object-page.md](object-page.md) - `Ui5ObjectPage`, for a Fiori Elements Object Page's
+  sections, in either display mode.
+- [docs/icon-tab-bar.md](icon-tab-bar.md) - `Ui5IconTabBar`, for a tab strip's keys and badge
+  counts.
+- [docs/split-app.md](split-app.md) - `Ui5SplitApp`, for the classic master/detail shell.
 - [docs/form-inputs.md](form-inputs.md) - `Ui5Select` and `Ui5DatePicker`, for dropdowns whose
   options aren't in the DOM until opened, and dates without locale/timezone traps.
 - [docs/messages.md](messages.md) - `Ui5MessageToast` and `Ui5Messages`, for toasts that vanish

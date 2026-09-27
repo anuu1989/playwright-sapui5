@@ -2,9 +2,12 @@ import { test, expect } from '../../src';
 import { ui5, Ui5Bridge, Ui5Table } from '../../src';
 
 // The SAPUI5 SDK's "Browse Orders" demo app - the classic master-detail / list-detail navigation
-// pattern (an `sap.m.SplitContainer`-based shell): a list of orders on one side, a detail view on
-// the other, selecting a row updates the detail pane in place rather than navigating to a new
-// page. See docs/demo-apps.md.
+// pattern: a list of orders on one side, a detail view on the other, selecting a row updates the
+// detail pane in place rather than navigating to a new page. This demo's shell is currently built
+// on `sap.f.FlexibleColumnLayout` (see docs/flexible-column-layout.md) - it used to be
+// `sap.m.SplitContainer`/`SplitApp` (see docs/split-app.md for that shell), which is a reminder
+// that a public demo's internals can change under you; the navigation pattern being tested here
+// doesn't care which shell renders it. See docs/demo-apps.md.
 const ORDER_BROWSER_URL =
   'https://ui5.sap.com/test-resources/sap/m/demokit/orderbrowser/webapp/test/mockServer.html?sap-ui-theme=sap_horizon';
 

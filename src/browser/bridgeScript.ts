@@ -1155,6 +1155,141 @@ export function bridgeScript(): void {
   }
 
   /**
+   * Reads a `sap.m.IconTabBar`'s tabs and current selection. `count` is the badge number the app
+   * bound onto each tab, if any - real data, not something worth scraping out of the rendered
+   * markup. Backs `Ui5IconTabBar` - see docs/icon-tab-bar.md.
+   */
+  function getIconTabBarInfo(id: string) {
+    const el = findByExactId(id);
+    if (!el || typeof el.getItems !== 'function') {
+      return { found: false, selectedKey: undefined, items: [] };
+    }
+    let selectedKey: string | undefined;
+    try {
+      selectedKey = typeof el.getSelectedKey === 'function' ? el.getSelectedKey() : undefined;
+    } catch {
+      selectedKey = undefined;
+    }
+    let items: any[] = [];
+    try {
+      items = el.getItems().map((item: any) => ({
+        id: typeof item.getId === 'function' ? item.getId() : undefined,
+        key: typeof item.getKey === 'function' ? item.getKey() : undefined,
+        text: typeof item.getText === 'function' ? item.getText() : undefined,
+        count: typeof item.getCount === 'function' ? item.getCount() : undefined,
+      }));
+    } catch {
+      items = [];
+    }
+    return { found: true, selectedKey, items };
+  }
+
+  /** Selects a `sap.m.IconTabBar` tab by finding the matching item's own control id - the actual
+   * click still happens as an ordinary DOM click via that id (Node-side, in
+   * `Ui5IconTabBar.selectByKey()`), so it fires the exact same events a real user click would.
+   * This just does the "which id has this key" lookup, since a tab's key is rarely its visible
+   * text and isn't otherwise readable from the DOM. */
+  function findIconTabBarItemIdByKey(id: string, key: string): string | undefined {
+    const info = getIconTabBarInfo(id);
+    const item = info.items.find((it: any) => it.key === key);
+    return item?.id;
+  }
+
+  /**
+   * Reads a `sap.uxap.ObjectPageLayout`'s sections and current selection. Object Page display
+   * modes (`iconTabBar` mode - top-level sections render as tabs - versus scroll mode - all
+   * sections stacked, the anchor bar highlighting as you scroll) look completely different in the
+   * DOM but expose the same section/subsection structure through the control's own API, which is
+   * what this reads instead of trying to handle both DOM shapes. Backs `Ui5ObjectPage` - see
+   * docs/object-page.md.
+   */
+  function getObjectPageInfo(id: string) {
+    const el = findByExactId(id);
+    if (!el || typeof el.getSections !== 'function') {
+      return { found: false, selectedSection: undefined, sections: [] };
+    }
+    let selectedSection: string | undefined;
+    try {
+      selectedSection =
+        typeof el.getSelectedSection === 'function' ? el.getSelectedSection() : undefined;
+    } catch {
+      selectedSection = undefined;
+    }
+    let sections: any[] = [];
+    try {
+      sections = el.getSections().map((section: any) => {
+        let subSections: any[] = [];
+        try {
+          subSections = (
+            typeof section.getSubSections === 'function' ? section.getSubSections() : []
+          ).map((sub: any) => ({
+            id: typeof sub.getId === 'function' ? sub.getId() : undefined,
+            title: typeof sub.getTitle === 'function' ? sub.getTitle() : undefined,
+          }));
+        } catch {
+          subSections = [];
+        }
+        return {
+          id: typeof section.getId === 'function' ? section.getId() : undefined,
+          title: typeof section.getTitle === 'function' ? section.getTitle() : undefined,
+          subSections,
+        };
+      });
+    } catch {
+      sections = [];
+    }
+    return { found: true, selectedSection, sections };
+  }
+
+  /** Scrolls (or, in icon-tab mode, switches) to a section by its own id, via the control's real
+   * `scrollToSection()` - the same official API SAPUI5's own anchor bar and tab clicks use, so it
+   * behaves identically in both display modes without this needing to know which one it's in.
+   * Backs `Ui5ObjectPage.scrollToSection()`. */
+  function scrollObjectPageToSection(id: string, sectionId: string) {
+    const el = findByExactId(id);
+    if (!el || typeof el.scrollToSection !== 'function') return { found: false, ok: false };
+    try {
+      el.scrollToSection(sectionId);
+      return { found: true, ok: true };
+    } catch (e) {
+      return { found: true, ok: false, error: e instanceof Error ? e.message : String(e) };
+    }
+  }
+
+  /**
+   * Reads a `sap.m.SplitApp`'s current state. `mode` is SAPUI5's own `sap.m.SplitAppMode` enum -
+   * the thing that decides whether a master page not currently visible is "not showing" or
+   * "showing, just collapsed behind a toggle" (`ShowHideMode`/`PopoverMode` on a narrow screen),
+   * which the DOM alone can't distinguish. Backs `Ui5SplitApp` - see docs/split-app.md.
+   */
+  function getSplitAppInfo(id: string) {
+    const el = findByExactId(id);
+    if (!el || typeof el.getMode !== 'function') {
+      return { found: false, mode: undefined, masterPage: undefined, detailPage: undefined };
+    }
+    function currentPageId(getterName: string) {
+      try {
+        const page = typeof el[getterName] === 'function' ? el[getterName]() : null;
+        return page && typeof page.getId === 'function' ? page.getId() : undefined;
+      } catch {
+        return undefined;
+      }
+    }
+    let mode: string | undefined;
+    try {
+      mode = el.getMode();
+    } catch {
+      mode = undefined;
+    }
+    return {
+      found: true,
+      mode,
+      masterPage: currentPageId('getCurrentMasterPage'),
+      detailPage: currentPageId('getCurrentDetailPage'),
+    };
+  }
+
+  /**
    * Collects load/performance numbers for the current document. Backs `Ui5Performance.metrics()` -
    * see docs/performance.md.
    *
@@ -1480,6 +1615,11 @@ export function bridgeScript(): void {
   bridge.selectVariant = selectVariant;
   bridge.getFlexibleColumnLayoutInfo = getFlexibleColumnLayoutInfo;
   bridge.setFlexibleColumnLayout = setFlexibleColumnLayout;
+  bridge.getIconTabBarInfo = getIconTabBarInfo;
+  bridge.findIconTabBarItemIdByKey = findIconTabBarItemIdByKey;
+  bridge.getObjectPageInfo = getObjectPageInfo;
+  bridge.scrollObjectPageToSection = scrollObjectPageToSection;
+  bridge.getSplitAppInfo = getSplitAppInfo;
   bridge.getPerformanceMetrics = getPerformanceMetrics;
   bridge.getHash = getHash;
   bridge.routerNavTo = routerNavTo;

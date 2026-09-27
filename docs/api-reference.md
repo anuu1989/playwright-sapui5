@@ -516,6 +516,74 @@ class Ui5FlexibleColumnLayout {
 
 See [docs/flexible-column-layout.md](flexible-column-layout.md).
 
+## `Ui5ObjectPage`
+
+```ts
+class Ui5ObjectPage {
+  static async sections(
+    target: Ui5Target,
+    objectPage: Ui5Locator | Locator,
+  ): Promise<Ui5ObjectPageSection[]>;
+  static async selectedSection(
+    target: Ui5Target,
+    objectPage: Ui5Locator | Locator,
+  ): Promise<string | undefined>;
+  static async scrollToSection(
+    target: Ui5Target,
+    objectPage: Ui5Locator | Locator,
+    title: string,
+    options?: { timeout?: number },
+  ): Promise<void>;
+}
+```
+
+See [docs/object-page.md](object-page.md).
+
+## `Ui5IconTabBar`
+
+Works against `sap.m.IconTabBar` or a bare `sap.m.IconTabHeader` - see docs/icon-tab-bar.md for why
+that distinction matters.
+
+```ts
+class Ui5IconTabBar {
+  static async items(
+    target: Ui5Target,
+    iconTabBar: Ui5Locator | Locator,
+  ): Promise<Ui5IconTabItem[]>;
+  static async selectedKey(
+    target: Ui5Target,
+    iconTabBar: Ui5Locator | Locator,
+  ): Promise<string | undefined>;
+  static async selectByKey(
+    target: Ui5Target,
+    iconTabBar: Ui5Locator | Locator,
+    key: string,
+    options?: Parameters<Locator['click']>[0],
+  ): Promise<void>;
+}
+```
+
+See [docs/icon-tab-bar.md](icon-tab-bar.md).
+
+## `Ui5SplitApp`
+
+The locator argument is optional - an app almost always has exactly one.
+
+```ts
+class Ui5SplitApp {
+  static async mode(
+    target: Ui5Target,
+    splitApp?: Ui5Locator | Locator,
+  ): Promise<string | undefined>;
+  static async currentPages(
+    target: Ui5Target,
+    splitApp?: Ui5Locator | Locator,
+  ): Promise<{ master?: string; detail?: string }>;
+}
+```
+
+See [docs/split-app.md](split-app.md).
+
 ## `Ui5Performance`
 
 ```ts
@@ -747,6 +815,19 @@ interface Ui5GridTableInfo {
   rowCount: number | undefined;
   firstVisibleRow: number | undefined;
   renderedRows: Ui5ControlInfo[];
+}
+
+interface Ui5IconTabItem {
+  id: string;
+  key: string | undefined;
+  text: string | undefined;
+  count: string | undefined; // '' when the app set no badge
+}
+
+interface Ui5ObjectPageSection {
+  id: string;
+  title: string | undefined;
+  subSections: { id: string; title: string | undefined }[];
 }
 
 type Ui5Target = Page | Frame;

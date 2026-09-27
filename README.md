@@ -51,6 +51,12 @@ asynchronously as data binds and routes change, and shows/hides busy indicators 
 - **`Ui5VariantManagement` and `Ui5FlexibleColumnLayout`** - read and switch a list report's saved
   variants, and read the Fiori multi-column shell's real layout state (which the DOM can't tell
   you, since all three columns always exist in the markup).
+- **`Ui5ObjectPage`, `Ui5IconTabBar` and `Ui5SplitApp`** - read a Fiori Elements Object Page's real
+  sections and jump to one directly, read and switch a tab strip's keys/badge counts (works
+  against both `sap.m.IconTabBar` and the bare `sap.m.IconTabHeader` a real Object Page renders),
+  and read the classic master/detail shell's mode and current pages - see
+  [docs/object-page.md](docs/object-page.md), [docs/icon-tab-bar.md](docs/icon-tab-bar.md),
+  [docs/split-app.md](docs/split-app.md).
 - **`Ui5Performance` and `Ui5Navigation`** - measure how long the app takes to actually become
   usable (not just to `load`), and jump straight to a route instead of clicking through to it.
 - **Automatic failure diagnostics** - every failing test gets the SAPUI5 control tree attached to
@@ -163,6 +169,9 @@ export class CartPage extends Ui5Page {
 | [docs/locator-health.md](docs/locator-health.md)                     | Aggregating self-heals across a run into a "these locators need fixing" report                                                                |
 | [docs/variant-management.md](docs/variant-management.md)             | `Ui5VariantManagement` - a list report's saved filter/column configurations                                                                   |
 | [docs/flexible-column-layout.md](docs/flexible-column-layout.md)     | `Ui5FlexibleColumnLayout` - the one/two/three-column Fiori shell                                                                              |
+| [docs/object-page.md](docs/object-page.md)                           | `Ui5ObjectPage` - sections and navigation for `sap.uxap.ObjectPageLayout`                                                                     |
+| [docs/icon-tab-bar.md](docs/icon-tab-bar.md)                         | `Ui5IconTabBar` - tabs, keys and badge counts for `sap.m.IconTabBar`/`IconTabHeader`                                                          |
+| [docs/split-app.md](docs/split-app.md)                               | `Ui5SplitApp` - mode and current pages for the classic master/detail shell                                                                    |
 | [docs/form-inputs.md](docs/form-inputs.md)                           | `Ui5Select` / `Ui5DatePicker` - dropdowns and dates, without the usual flakiness                                                              |
 | [docs/messages.md](docs/messages.md)                                 | `Ui5MessageToast` (race-free toast assertions) and `Ui5Messages` (validation/backend errors)                                                  |
 | [docs/demo-apps.md](docs/demo-apps.md)                               | Four real, free demo apps (Fiori Elements, master-detail, PlanningCalendar, a different shell)                                                |

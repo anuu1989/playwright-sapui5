@@ -275,6 +275,54 @@ export interface Ui5FlexibleColumnLayoutInfo {
   endPage: string | undefined;
 }
 
+/** One tab of a `sap.m.IconTabBar` (a `sap.m.IconTabFilter`). `count` is the badge number, if the
+ * app set one - it's real bound data, not something readable from the rendered DOM without
+ * knowing which nested `<span>` happens to hold it. See `src/core/Ui5IconTabBar.ts`. */
+export interface Ui5IconTabItem {
+  id: string;
+  key: string | undefined;
+  text: string | undefined;
+  count: string | undefined;
+}
+
+/** A `sap.m.IconTabBar`'s current state (`Ui5Bridge.getIconTabBarInfo`). See
+ * `src/core/Ui5IconTabBar.ts`. */
+export interface Ui5IconTabBarInfo {
+  found: boolean;
+  selectedKey: string | undefined;
+  items: Ui5IconTabItem[];
+}
+
+/** One section of a `sap.uxap.ObjectPageLayout` (a `sap.uxap.ObjectPageSection`), with its
+ * subsections. See `src/core/Ui5ObjectPage.ts`. */
+export interface Ui5ObjectPageSection {
+  id: string;
+  title: string | undefined;
+  subSections: { id: string; title: string | undefined }[];
+}
+
+/** A `sap.uxap.ObjectPageLayout`'s current state (`Ui5Bridge.getObjectPageInfo`). `selectedSection`
+ * is the id of the top-level section currently in view - the honest answer to "which section is
+ * showing", whether the page is in icon-tab mode (clicking a tab) or scroll mode (the anchor bar
+ * highlighting as you scroll past each section). See `src/core/Ui5ObjectPage.ts`. */
+export interface Ui5ObjectPageInfo {
+  found: boolean;
+  selectedSection: string | undefined;
+  sections: Ui5ObjectPageSection[];
+}
+
+/** A `sap.m.SplitApp`'s current state (`Ui5Bridge.getSplitAppInfo`). `mode` is SAPUI5's own
+ * `sap.m.SplitAppMode` enum (`'ShowHideMode'`, `'StretchCompressMode'`, `'PopoverMode'`,
+ * `'HideMode'`) - the thing that decides whether a "hidden" master page means "not showing" or
+ * "showing, just collapsed behind a toggle", which the DOM alone doesn't tell you. See
+ * `src/core/Ui5SplitApp.ts`. */
+export interface Ui5SplitAppInfo {
+  found: boolean;
+  mode: string | undefined;
+  masterPage: string | undefined;
+  detailPage: string | undefined;
+}
+
 /** Load/performance numbers for a page (`Ui5Bridge.getPerformanceMetrics`). The browser timings
  * describe the document load; `ui5ResourceCount`/`controlCount` describe what SAPUI5 then pulled
  * in and built on top of it - which is where a UI5 app's real startup cost lives. See
