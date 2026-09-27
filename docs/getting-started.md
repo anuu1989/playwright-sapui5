@@ -191,6 +191,10 @@ more patterns, and [docs/auto-wait.md](auto-wait.md) for exactly what "settle" m
   automatically: what was really on the page when the locator gave up.
 - [docs/jira.md](jira.md) - report results straight to Jira, and file bugs with that control tree
   attached, so whoever picks one up isn't starting from nothing.
+- [docs/doctor.md](doctor.md) - `pw-sapui5 doctor`, a zero-code CI smoke check for "did the app
+  even come up cleanly?"
+- [docs/locator-health.md](locator-health.md) - aggregating self-heals across a whole run into a
+  report of which locators need fixing.
 - [docs/variant-management.md](variant-management.md) - `Ui5VariantManagement`, for a list
   report's saved filter/column configurations.
 - [docs/flexible-column-layout.md](flexible-column-layout.md) - `Ui5FlexibleColumnLayout`, for

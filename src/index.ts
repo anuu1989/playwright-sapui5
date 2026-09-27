@@ -48,6 +48,13 @@ export type { JiraClientOptions, JiraDeployment } from './integrations/jiraClien
 export { extractIssueKeys, issueKeysForTest } from './integrations/jiraIssueKeys';
 export type { TestLikeForJira, IssueKeyOptions } from './integrations/jiraIssueKeys';
 export type { JiraReporterOptions } from './integrations/JiraReporter';
+// Locator health - the reporter itself is also reachable as 'playwright-sapui5/reporter/health'.
+export { summarizeHeals } from './integrations/HealthReporter';
+export type {
+  HealthReporterOptions,
+  HealAggregateRow,
+  HealthSummary,
+} from './integrations/HealthReporter';
 export { waitForUi5, waitForUi5Core } from './core/waits';
 export { findUi5Frame } from './core/findUi5Frame';
 export type { FindUi5FrameOptions } from './core/findUi5Frame';

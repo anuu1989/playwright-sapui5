@@ -609,6 +609,35 @@ interface JiraClientOptions {
 }
 ```
 
+## Locator health
+
+See [docs/locator-health.md](locator-health.md) for full usage.
+
+```ts
+// The reporter, registered by path in playwright.config.ts:
+//   reporter: [['playwright-sapui5/reporter/health', { outputFile: 'locator-health.json' }]]
+
+function summarizeHeals(perTest: { title: string; heals: HealEvent[] }[]): HealthSummary;
+
+interface HealthReporterOptions {
+  outputFile?: string;
+  /** Only escalates a run that would otherwise report 'passed'. */
+  failOnHeal?: boolean;
+}
+
+interface HealAggregateRow {
+  label: string;
+  count: number;
+  tests: string[];
+  strategies: Record<string, number>;
+}
+
+interface HealthSummary {
+  totalHeals: number;
+  rows: HealAggregateRow[]; // sorted by count, descending
+}
+```
+
 ## OData mocking
 
 ```ts
@@ -748,6 +777,14 @@ See [docs/generator.md](generator.md) for full usage.
 
 ```bash
 npx pw-sapui5 generate --url <url> [--output <path>] [--class-name <name>] [--headed] [--timeout <ms>]
+```
+
+## CLI: `pw-sapui5 doctor`
+
+See [docs/doctor.md](doctor.md) for full usage.
+
+```bash
+npx pw-sapui5 doctor --url <url> [--timeout <ms>] [--budget-ms <ms>] [--headed]
 ```
 
 ## CLI: `pw-sapui5 init`

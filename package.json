@@ -69,6 +69,10 @@
       "types": "./dist/integrations/JiraReporter.d.ts",
       "default": "./dist/integrations/JiraReporter.js"
     },
+    "./reporter/health": {
+      "types": "./dist/integrations/HealthReporter.d.ts",
+      "default": "./dist/integrations/HealthReporter.js"
+    },
     "./package.json": "./package.json"
   }
 }

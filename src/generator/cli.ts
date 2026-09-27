@@ -13,6 +13,7 @@ import { generatePageObjectSource } from './generatePageObjectSource';
 import { analyzeUi5App } from './analyzeApp';
 import { generateTestSource } from './generateTestSource';
 import { runInit } from './initCommand';
+import { runDoctor } from './doctorCommand';
 
 /**
  * This file is deliberately thin: it defines the CLI's subcommands (`generate`, `generate-tests`
@@ -204,6 +205,51 @@ program
     console.log(
       '  npx pw-sapui5 generate --url <your-app-url> --output pages/HomePage.ts --class-name HomePage',
     );
+  });
+
+// --- `pw-sapui5 doctor` -----------------------------------------------------------------------
+// See docs/doctor.md. A zero-code smoke check: launch a browser, load the app, and answer "did
+// this even come up cleanly?" - bootstraps, renders something, settles within budget, no errors
+// in SAPUI5's own message model. Every check reuses a library call the rest of this framework
+// already has (`Ui5Performance`, `Ui5Messages`) - this just exposes them as a CI gate that needs
+// no test file at all. Exits non-zero on failure, so it drops straight into a pipeline step.
+program
+  .command('doctor')
+  .description(
+    'Zero-code smoke check: does the app bootstrap, render controls, settle in budget, and report no message-model errors?',
+  )
+  .requiredOption('-u, --url <url>', 'URL of the SAPUI5 app to check')
+  .option('--timeout <ms>', 'Navigation / ready timeout in milliseconds', '30000')
+  .option(
+    '--budget-ms <ms>',
+    'Startup budget - the "settles in budget" check fails past this many milliseconds',
+    '15000',
+  )
+  .option('--headed', 'Run the checking browser in headed mode', false)
+  .action(async (opts: { url: string; timeout: string; budgetMs: string; headed: boolean }) => {
+    const timeout = Number(opts.timeout);
+    const budgetMs = Number(opts.budgetMs);
+    console.log(`Checking ${opts.url} ...`);
+    const browser = await chromium.launch({ headless: !opts.headed });
+    try {
+      const page = await browser.newPage();
+      const report = await runDoctor(page, opts.url, { timeout, budgetMs });
+
+      console.log('');
+      for (const check of report.checks) {
+        console.log(`  ${check.ok ? '✓' : '✗'} ${check.name} - ${check.detail}`);
+      }
+      console.log('');
+      console.log(report.ok ? 'OK' : 'FAILED');
+
+      if (!report.ok) {
+        // The CLI's exit code, not an exception - a failing app is an expected, well-formed
+        // outcome for this command to report, not a bug in the command itself.
+        process.exitCode = 1;
+      }
+    } finally {
+      await browser.close();
+    }
   });
 
 // `program.parseAsync(process.argv)` is `commander`'s entry point: it reads the actual

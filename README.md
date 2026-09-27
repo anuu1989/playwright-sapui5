@@ -58,6 +58,12 @@ asynchronously as data binds and routes change, and shows/hides busy indicators 
 - **Direct Jira integration** - a reporter that posts run summaries to the Jira issues your tests
   reference, and can file a bug per failure with the UI5 control tree attached. Straight to Jira's
   REST API: no Xray, no Zephyr, no plugin in between - see [docs/jira.md](docs/jira.md).
+- **`pw-sapui5 doctor`** - a zero-code smoke check: does the app bootstrap, render controls, settle
+  within budget, and report no message-model errors? One CLI command, a pass/fail exit code, no
+  test file - see [docs/doctor.md](docs/doctor.md).
+- **Locator health reporting** - aggregates self-heals across a whole CI run into "these locators
+  need fixing", instead of a live console warning you only see if you're watching - see
+  [docs/locator-health.md](docs/locator-health.md).
 - **Four real, free demo-app walkthroughs** - a complete Fiori Elements List Report + Object Page,
   classic master-detail navigation, `sap.m.PlanningCalendar`, and a different app shell
   (`sap.tnt.ToolPage`) - see [docs/demo-apps.md](docs/demo-apps.md).
@@ -153,6 +159,8 @@ export class CartPage extends Ui5Page {
 | [docs/navigation.md](docs/navigation.md)                             | `Ui5Navigation` - hash routing: jump straight to a route, confirm one happened                                                                |
 | [docs/diagnostics.md](docs/diagnostics.md)                           | The control tree attached to every failure - what was actually on the page                                                                    |
 | [docs/jira.md](docs/jira.md)                                         | Reporting results straight to Jira - linking tests to issues, filing bugs with the control tree attached                                      |
+| [docs/doctor.md](docs/doctor.md)                                     | `pw-sapui5 doctor` - a zero-code CI smoke check: did the app even come up cleanly?                                                            |
+| [docs/locator-health.md](docs/locator-health.md)                     | Aggregating self-heals across a run into a "these locators need fixing" report                                                                |
 | [docs/variant-management.md](docs/variant-management.md)             | `Ui5VariantManagement` - a list report's saved filter/column configurations                                                                   |
 | [docs/flexible-column-layout.md](docs/flexible-column-layout.md)     | `Ui5FlexibleColumnLayout` - the one/two/three-column Fiori shell                                                                              |
 | [docs/form-inputs.md](docs/form-inputs.md)                           | `Ui5Select` / `Ui5DatePicker` - dropdowns and dates, without the usual flakiness                                                              |
@@ -172,7 +180,8 @@ export class CartPage extends Ui5Page {
 ## CLI reference
 
 Everything the `pw-sapui5` command can do. All three subcommands are also documented in depth:
-[`init`](docs/init.md), [`generate`](docs/generator.md), [`generate-tests`](docs/test-generator.md).
+[`init`](docs/init.md), [`generate`](docs/generator.md), [`generate-tests`](docs/test-generator.md),
+[`doctor`](docs/doctor.md).
 
 ```bash
 npx pw-sapui5 --help            # list the subcommands
@@ -285,6 +294,26 @@ It prints what it found before writing, because the analysis is what decides whi
   Routes:   5 navigable, 5 need parameters
   Detected: flexibleColumnLayout, list, searchField
   Startup:  ~2519ms to settle
+```
+
+### `pw-sapui5 doctor`
+
+A zero-code smoke check: does the app bootstrap, render controls, settle within budget, and report
+no message-model errors? See [docs/doctor.md](docs/doctor.md).
+
+| Option             | Default      | What it does                                                            |
+| ------------------ | ------------ | ----------------------------------------------------------------------- |
+| `-u, --url <url>`  | _(required)_ | The app to check.                                                       |
+| `--timeout <ms>`   | `30000`      | Navigation / ready timeout.                                             |
+| `--budget-ms <ms>` | `15000`      | The "startup budget" check fails past this many milliseconds to settle. |
+| `--headed`         | `false`      | Show the checking browser.                                              |
+
+```bash
+# Exits 0 if the app is healthy, 1 otherwise - drop straight into a CI step
+npx pw-sapui5 doctor --url https://your-app.example.com/
+
+# A slower environment, with a matching budget
+npx pw-sapui5 doctor --url https://your-app.example.com/ --timeout 60000 --budget-ms 20000
 ```
 
 ### Notes that apply to both generators

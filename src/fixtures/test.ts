@@ -2,6 +2,8 @@ import { test as base, expect as baseExpect } from '@playwright/test';
 import { waitForUi5 } from '../core/waits';
 import { ui5Matchers } from '../core/matchers';
 import { captureControlTree } from '../core/diagnostics';
+import { SelfHealingResolver } from '../core/SelfHealingResolver';
+import type { HealEvent } from '../core/types';
 
 /**
  * Drop-in replacement for `@playwright/test`'s `test`. The `page` fixture it provides
@@ -24,7 +26,7 @@ import { captureControlTree } from '../core/diagnostics';
  * override - only the `page` fixture is customized below; every other fixture (`context`,
  * `browser`, `request`, ...) passes straight through unchanged.
  */
-export const test = base.extend<{ ui5Diagnostics: void }>({
+export const test = base.extend<{ ui5Diagnostics: void; ui5HealthTracking: void }>({
   // Fixtures in Playwright are written as `async ({ dependencies }, use) => { ... }` - `{ page }`
   // here destructures the *original*, unmodified `page` fixture (this is why the parameter name
   // matches the property being overridden - Playwright resolves it from the base fixture, not
@@ -75,6 +77,39 @@ export const test = base.extend<{ ui5Diagnostics: void }>({
       if (dump.length > 0) {
         await testInfo.attach('ui5-control-tree.json', {
           body: JSON.stringify(dump, null, 2),
+          contentType: 'application/json',
+        });
+      }
+    },
+    { auto: true },
+  ],
+
+  /**
+   * Collects every self-heal that happened during this test and attaches them - even on a
+   * *passing* test, deliberately: a heal means the primary locator strategy didn't match and a
+   * fallback caught it, which is worth knowing about whether or not it happened to also be the
+   * difference between pass and fail this run. `HealthReporter` (see
+   * `src/integrations/HealthReporter.ts`) reads this attachment to aggregate heals across a whole
+   * CI run into one "these locators need attention" summary - see docs/locator-health.md.
+   *
+   * `SelfHealingResolver.onHeal` is a process-wide subscription, so this subscribes fresh and
+   * unsubscribes at the end of every single test - Playwright runs one test at a time per worker,
+   * so there's no risk of one test's heals leaking into another's attachment.
+   */
+  ui5HealthTracking: [
+    // Playwright's fixture signature always takes this first "dependencies" object, even for a
+    // fixture like this one that needs none of them - `SelfHealingResolver.onHeal` works
+    // regardless of `page`/etc. eslint-disable-next-line is for that empty `{}`, not a mistake.
+    // eslint-disable-next-line no-empty-pattern
+    async ({}, use, testInfo) => {
+      const heals: HealEvent[] = [];
+      const unsubscribe = SelfHealingResolver.onHeal((event) => heals.push(event));
+      await use();
+      unsubscribe();
+
+      if (heals.length > 0) {
+        await testInfo.attach('ui5-heals.json', {
+          body: JSON.stringify(heals),
           contentType: 'application/json',
         });
       }
