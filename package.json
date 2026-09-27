@@ -73,6 +73,10 @@
       "types": "./dist/integrations/HealthReporter.d.ts",
       "default": "./dist/integrations/HealthReporter.js"
     },
+    "./reporter/api-catalog": {
+      "types": "./dist/integrations/ApiCatalogReporter.d.ts",
+      "default": "./dist/integrations/ApiCatalogReporter.js"
+    },
     "./package.json": "./package.json"
   }
 }

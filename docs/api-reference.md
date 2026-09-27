@@ -734,6 +734,55 @@ interface HealthSummary {
 }
 ```
 
+## API catalog
+
+See [docs/api-catalog.md](api-catalog.md) for full usage.
+
+```ts
+// The reporter, registered by path in playwright.config.ts:
+//   reporter: [['playwright-sapui5/reporter/api-catalog', { outputFile: 'api-catalog.md' }]]
+
+function startApiCapture(page: Page, options?: ApiCaptureOptions): { calls: CapturedApiCall[] };
+function defaultApiCallFilter(info: { url: string; contentType: string | undefined }): boolean;
+function expandBatchCall(call: CapturedApiCall): CapturedApiCall[];
+function parseBatchRequestParts(body: string, contentType: string | undefined): unknown[];
+function parseBatchResponseParts(body: string, contentType: string | undefined): unknown[];
+
+function buildApiCatalog(calls: CapturedApiCall[]): ApiCatalogEntry[];
+function renderApiCatalogMarkdown(entries: ApiCatalogEntry[], options?: { title?: string }): string;
+function normalizeEndpointPath(rawPath: string): string;
+
+interface CapturedApiCall {
+  method: string;
+  url: string;
+  status: number;
+  requestHeaders: Record<string, string>;
+  requestBody: string | undefined;
+  responseHeaders: Record<string, string>;
+  responseBody: string | undefined;
+  contentType: string | undefined;
+  batchPath?: string; // set only for a call extracted from inside a $batch request
+}
+
+interface ApiCaptureOptions {
+  filter?: (info: { url: string; contentType: string | undefined }) => boolean;
+}
+
+interface ApiCatalogEntry {
+  method: string;
+  endpoint: string;
+  count: number;
+  viaBatch: boolean;
+  sample: CapturedApiCall;
+}
+
+interface ApiCatalogReporterOptions {
+  outputFile?: string; // default 'api-catalog.md'
+  jsonOutputFile?: string;
+  title?: string; // default 'API Catalog'
+}
+```
+
 ## OData mocking
 
 ```ts

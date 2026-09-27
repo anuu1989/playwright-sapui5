@@ -26,6 +26,7 @@ import { test, expect, ui5 } from 'playwright-sapui5';
 | [Find a control](#how-do-i-find-a-control)                                                                                                           |
 | [Stop a locator breaking every release](#how-do-i-stop-a-locator-breaking-every-release)                                                             |
 | [Track which locators are healing across a run](#how-do-i-track-which-locators-are-healing-across-a-run)                                             |
+| [Document which APIs my app's UI actually calls](#how-do-i-document-which-apis-my-apps-ui-actually-calls)                                            |
 | [Wait for the app to be ready](#how-do-i-wait-for-the-app-to-be-ready)                                                                               |
 | [Organise a growing suite](#how-do-i-organise-a-growing-suite)                                                                                       |
 | [Assert on a control's real state](#how-do-i-assert-on-a-controls-real-state)                                                                        |
@@ -171,6 +172,21 @@ passing because its fallback does the real work. `outputFile` writes the aggrega
 diffing against a previous run; `failOnHeal: true` turns an otherwise-green run red.
 
 → [locator-health.md](locator-health.md)
+
+### How do I document which APIs my app's UI actually calls?
+
+```ts
+// playwright.config.ts
+reporter: [['list'], ['playwright-sapui5/reporter/api-catalog']],
+```
+
+No change to existing tests - a fixture already built into `test` records each test's real
+traffic. Run your suite as usual and an `api-catalog.md` shows up afterward: every distinct
+endpoint your tests' real user journeys actually hit, with a real sample request and response
+each, `$batch` calls unpacked into their individually embedded requests rather than left as one
+opaque blob.
+
+→ [api-catalog.md](api-catalog.md)
 
 ### How do I wait for the app to be ready?
 

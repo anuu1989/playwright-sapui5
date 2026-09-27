@@ -197,6 +197,8 @@ more patterns, and [docs/auto-wait.md](auto-wait.md) for exactly what "settle" m
   even come up cleanly?"
 - [docs/locator-health.md](locator-health.md) - aggregating self-heals across a whole run into a
   report of which locators need fixing.
+- [docs/api-catalog.md](api-catalog.md) - generating a catalog of every API endpoint your test
+  suite's real user journeys actually call, sample request/response included.
 - [docs/odata-mocking.md](odata-mocking.md) and [docs/odata-metadata.md](odata-metadata.md) -
   mocking OData responses with the correct envelope shapes, and checking a mock against a real
   service's own `$metadata` before it ships.

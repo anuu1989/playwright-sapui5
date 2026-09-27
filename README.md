@@ -85,6 +85,10 @@ asynchronously as data binds and routes change, and shows/hides busy indicators 
   **Fiori Elements for OData V4** (`sap.fe`) renders - a different control family from OData V2's
   SmartTable, verified against a real, live `sap.fe` app - see
   [docs/mdc-table.md](docs/mdc-table.md).
+- **API catalog generation** - a reporter that turns a whole test run's real traffic into a
+  catalog of every distinct endpoint the app called, with a sample request/response each - `$batch`
+  calls unpacked into their real embedded requests, not left as one opaque blob - see
+  [docs/api-catalog.md](docs/api-catalog.md).
 - **Four real, free demo-app walkthroughs** - a complete Fiori Elements List Report + Object Page,
   classic master-detail navigation, `sap.m.PlanningCalendar`, and a different app shell
   (`sap.tnt.ToolPage`) - see [docs/demo-apps.md](docs/demo-apps.md).
@@ -173,6 +177,7 @@ export class CartPage extends Ui5Page {
 | [docs/cross-frame.md](docs/cross-frame.md)                           | Testing a SAPUI5 app embedded in an iframe (Fiori Launchpad and similar shells)                                                               |
 | [docs/smart-controls.md](docs/smart-controls.md)                     | `Ui5SmartFilterBar`/`Ui5SmartTable` - Fiori Elements' generated filter bar and result table                                                   |
 | [docs/mdc-table.md](docs/mdc-table.md)                               | `Ui5MdcTable` - row count/column headers for `sap.ui.mdc.Table`, Fiori Elements for OData V4                                                  |
+| [docs/api-catalog.md](docs/api-catalog.md)                           | Generating an API catalog (sample request/response per endpoint, `$batch` unpacked) from real test traffic                                    |
 | [docs/ui5-grid-table.md](docs/ui5-grid-table.md)                     | `Ui5GridTable` - row/cell/header access for `sap.ui.table.Table`, the virtualized grid table                                                  |
 | [docs/value-help-dialog.md](docs/value-help-dialog.md)               | `Ui5ValueHelpDialog` - opening and selecting from a value help ("F4 help") dialog                                                             |
 | [docs/i18n.md](docs/i18n.md)                                         | `Ui5I18n` - assert using the app's own translated texts instead of hardcoded strings                                                          |

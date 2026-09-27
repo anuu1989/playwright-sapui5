@@ -3,6 +3,7 @@ import { waitForUi5 } from '../core/waits';
 import { ui5Matchers } from '../core/matchers';
 import { captureControlTree } from '../core/diagnostics';
 import { SelfHealingResolver } from '../core/SelfHealingResolver';
+import { startApiCapture } from '../core/apiCapture';
 import type { HealEvent } from '../core/types';
 
 /**
@@ -26,7 +27,11 @@ import type { HealEvent } from '../core/types';
  * override - only the `page` fixture is customized below; every other fixture (`context`,
  * `browser`, `request`, ...) passes straight through unchanged.
  */
-export const test = base.extend<{ ui5Diagnostics: void; ui5HealthTracking: void }>({
+export const test = base.extend<{
+  ui5Diagnostics: void;
+  ui5HealthTracking: void;
+  ui5ApiCatalog: void;
+}>({
   // Fixtures in Playwright are written as `async ({ dependencies }, use) => { ... }` - `{ page }`
   // here destructures the *original*, unmodified `page` fixture (this is why the parameter name
   // matches the property being overridden - Playwright resolves it from the base fixture, not
@@ -110,6 +115,33 @@ export const test = base.extend<{ ui5Diagnostics: void; ui5HealthTracking: void 
       if (heals.length > 0) {
         await testInfo.attach('ui5-heals.json', {
           body: JSON.stringify(heals),
+          contentType: 'application/json',
+        });
+      }
+    },
+    { auto: true },
+  ],
+
+  /**
+   * Records this test's real API traffic (filtered to JSON/XML/multipart, business-looking
+   * responses - see `defaultApiCallFilter` in `src/core/apiCapture.ts`) and attaches it, so
+   * `ApiCatalogReporter` (`src/integrations/ApiCatalogReporter.ts`) can turn a whole run's worth
+   * of real user journeys into an API catalog - see docs/api-catalog.md.
+   *
+   * Started before the test body runs, the same "install before navigation" rule as this
+   * framework's own bridge (see docs/auto-wait.md), so bootstrap-time calls are caught too. Cost
+   * is small and bounded: the filter runs on headers alone before any response body is read, so
+   * only genuinely matching (typically business-data) responses cost anything at all - see
+   * docs/api-catalog.md#overhead if you want to disable it anyway.
+   */
+  ui5ApiCatalog: [
+    async ({ page }, use, testInfo) => {
+      const capture = startApiCapture(page);
+      await use();
+
+      if (capture.calls.length > 0) {
+        await testInfo.attach('ui5-api-calls.json', {
+          body: JSON.stringify(capture.calls),
           contentType: 'application/json',
         });
       }

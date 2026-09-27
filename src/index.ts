@@ -61,6 +61,21 @@ export type {
   HealAggregateRow,
   HealthSummary,
 } from './integrations/HealthReporter';
+// API catalog - the reporter itself is also reachable as 'playwright-sapui5/reporter/api-catalog'.
+export {
+  buildApiCatalog,
+  renderApiCatalogMarkdown,
+  normalizeEndpointPath,
+} from './integrations/ApiCatalogReporter';
+export type { ApiCatalogReporterOptions, ApiCatalogEntry } from './integrations/ApiCatalogReporter';
+export {
+  startApiCapture,
+  defaultApiCallFilter,
+  expandBatchCall,
+  parseBatchRequestParts,
+  parseBatchResponseParts,
+} from './core/apiCapture';
+export type { CapturedApiCall, ApiCaptureOptions } from './core/apiCapture';
 export { waitForUi5, waitForUi5Core } from './core/waits';
 export { findUi5Frame } from './core/findUi5Frame';
 export type { FindUi5FrameOptions } from './core/findUi5Frame';
