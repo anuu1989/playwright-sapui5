@@ -631,6 +631,16 @@ function summarizeByType(dump: Ui5ControlDump[]): { type: string; count: number 
 Attached to failing tests automatically by this package's `test` fixture - see
 [docs/diagnostics.md](diagnostics.md).
 
+## Visual-diff masking
+
+```ts
+function maskDynamicUi5Content(target: Ui5Target): Promise<Locator[]>;
+```
+
+Reads each control's real binding type (not its rendered text) to find date/time-bound content,
+ready to pass straight into Playwright's own `toHaveScreenshot(name, { mask })`. See
+[docs/visual-testing.md#masking-dynamic-content](visual-testing.md#masking-dynamic-content).
+
 ## Jira
 
 See [docs/jira.md](jira.md) for full usage.

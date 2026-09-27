@@ -1465,6 +1465,50 @@ export function bridgeScript(): void {
       .map(toControlInfo);
   }
 
+  /** The SAPUI5 binding types that format a value as a date/time - a reliable signal that a
+   * control's displayed content is inherently time-based ("today", "2 minutes ago", a live
+   * clock), the exact thing that makes a screenshot comparison flaky from one run to the next.
+   * Backs `maskDynamicUi5Content()` - see docs/visual-testing.md#masking-dynamic-content. */
+  const DATE_TIME_BINDING_TYPES = [
+    'sap.ui.model.type.Date',
+    'sap.ui.model.type.DateTime',
+    'sap.ui.model.type.Time',
+    'sap.ui.model.odata.type.Date',
+    'sap.ui.model.odata.type.DateTime',
+    'sap.ui.model.odata.type.DateTimeOffset',
+    'sap.ui.model.odata.type.TimeOfDay',
+    'sap.ui.model.odata.type.Time',
+  ];
+
+  /**
+   * Finds every control with at least one property bound through a date/time formatting type -
+   * i.e. declared with `{ path: '...', type: new sap.ui.model.type.DateTime() }` (or the OData
+   * V4 equivalents), rather than a bare path. This reads the control's own binding metadata
+   * (`mBindingInfos`, the same internal structure SAPUI5 itself uses to know how to format each
+   * bound property) - it does not guess from rendered text, which is what makes it reliable: a
+   * plain `sap.m.Text` showing the literal string `"2024-01-01"` with no such binding is correctly
+   * left alone, while one whose binding actually carries a date/time type is caught regardless of
+   * what its formatted output happens to look like right now.
+   */
+  function findControlsWithDateTimeBinding() {
+    return getAllElements()
+      .filter((el) => {
+        const bindingInfos = el.mBindingInfos;
+        if (!bindingInfos || typeof bindingInfos !== 'object') return false;
+        return Object.keys(bindingInfos).some((propertyName) => {
+          try {
+            const type = bindingInfos[propertyName]?.type;
+            const typeName =
+              type && typeof type.getMetadata === 'function' ? type.getMetadata().getName() : null;
+            return !!typeName && DATE_TIME_BINDING_TYPES.indexOf(typeName) !== -1;
+          } catch {
+            return false;
+          }
+        });
+      })
+      .map(toControlInfo);
+  }
+
   /** Is the app "busy" right now, by any of three independent signals? Used directly by
    * `Ui5Bridge.isBusy()`, and as one half of `isSettled()` below. */
   function isBusy(): boolean {
@@ -1592,6 +1636,7 @@ export function bridgeScript(): void {
   bridge.findDescendantControlsByType = findDescendantControlsByType;
   bridge.getAggregation = getAggregation;
   bridge.findOpenPopups = findOpenPopups;
+  bridge.findControlsWithDateTimeBinding = findControlsWithDateTimeBinding;
   bridge.setSmartFilterBarData = setSmartFilterBarData;
   bridge.getSmartFilterBarData = getSmartFilterBarData;
   bridge.triggerSmartFilterBarSearch = triggerSmartFilterBarSearch;

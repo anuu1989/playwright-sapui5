@@ -258,6 +258,13 @@ export class Ui5Bridge {
     return target.evaluate(() => (window as any).__pwSapUi5__.findOpenPopups());
   }
 
+  /** Every control with at least one property bound through a date/time formatting type. Used by
+   * `maskDynamicUi5Content()`. */
+  static async findControlsWithDateTimeBinding(target: Ui5Target): Promise<Ui5ControlInfo[]> {
+    await this.ensure(target);
+    return target.evaluate(() => (window as any).__pwSapUi5__.findControlsWithDateTimeBinding());
+  }
+
   // --- Advanced: sap.ui.comp SmartFilterBar / SmartTable -----------------------------------------
   // Backs `Ui5SmartFilterBar` and `Ui5SmartTable` - see docs/smart-controls.md. Unlike everything
   // above, these call an actual method *on* the control (`setFilterData`, `search`, ...), not just

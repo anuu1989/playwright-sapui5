@@ -55,6 +55,31 @@ await expect(page).toHaveScreenshot('home.png', {
 });
 ```
 
+## <a id="masking-dynamic-content"></a>Masking dynamic content automatically
+
+Finding every dynamic element by hand doesn't scale, and it's easy to miss one. `maskDynamicUi5Content`
+finds controls whose displayed value is inherently time-based - "2 minutes ago", today's date, a
+live clock - and returns them ready to pass straight into `mask`:
+
+```ts
+import { maskDynamicUi5Content } from 'playwright-sapui5';
+
+const dynamic = await maskDynamicUi5Content(page);
+await expect(page).toHaveScreenshot('dashboard.png', { mask: dynamic });
+```
+
+**How it detects them, and why that matters.** It reads each control's real **binding type** -
+whether a property was bound as `{ path: '...', type: new sap.ui.model.type.DateTime() }` (or the
+OData V4 equivalents) - not its rendered text. That's a meaningful difference: a control showing
+the literal string `"2024-01-01"` typed in as a plain value, with no such binding, is correctly
+left alone; one bound through a date/time type is masked regardless of what its formatted output
+looks like right now. Verified against a real SAPUI5 runtime with exactly this pair of controls -
+see [`examples/tests/visual-mask.spec.ts`](../examples/tests/visual-mask.spec.ts).
+
+**What it won't catch:** content that's dynamic for a reason other than a SAPUI5 date/time binding
+type - a random id, a counter formatted by custom app code, a genuinely live value bound as a plain
+string. Mask those explicitly, the same way as the manual example above.
+
 ## Wait for the app to settle first
 
 Same rule as everywhere else in this framework: screenshot before the app has finished rendering

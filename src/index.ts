@@ -44,6 +44,7 @@ export { Ui5SplitApp } from './core/Ui5SplitApp';
 export { Ui5Performance } from './core/Ui5Performance';
 export { Ui5Navigation } from './core/Ui5Navigation';
 export { captureControlTree, formatControlTree, summarizeByType } from './core/diagnostics';
+export { maskDynamicUi5Content } from './core/visualMask';
 // Jira integration - the reporter itself is also reachable as 'playwright-sapui5/reporter/jira',
 // which is the path you put in playwright.config.ts.
 export { JiraClient, jiraOptionsFromEnv, toAtlassianDocument } from './integrations/jiraClient';

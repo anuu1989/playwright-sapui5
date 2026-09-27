@@ -74,6 +74,10 @@ asynchronously as data binds and routes change, and shows/hides busy indicators 
   published schema before mocking, catching a typo'd or renamed property at test-setup time
   instead of as a confusing binding failure inside the app - see
   [docs/odata-metadata.md](docs/odata-metadata.md).
+- **Automatic visual-diff masking** - finds controls bound through a real SAPUI5 date/time type
+  (not a guess from rendered text) and masks them out of a screenshot comparison, so a live clock
+  or a relative timestamp doesn't make every visual test flaky - see
+  [docs/visual-testing.md](docs/visual-testing.md#masking-dynamic-content).
 - **Four real, free demo-app walkthroughs** - a complete Fiori Elements List Report + Object Page,
   classic master-detail navigation, `sap.m.PlanningCalendar`, and a different app shell
   (`sap.tnt.ToolPage`) - see [docs/demo-apps.md](docs/demo-apps.md).
@@ -185,7 +189,7 @@ export class CartPage extends Ui5Page {
 | [docs/multi-environment-config.md](docs/multi-environment-config.md) | Pointing tests at dev/QA/prod via env vars instead of hardcoded URLs                                                                          |
 | [docs/authentication.md](docs/authentication.md)                     | Logging in once and reusing the session across tests                                                                                          |
 | [docs/accessibility.md](docs/accessibility.md)                       | Accessibility testing with axe-core                                                                                                           |
-| [docs/visual-testing.md](docs/visual-testing.md)                     | Screenshot-based visual regression testing, and its platform gotcha                                                                           |
+| [docs/visual-testing.md](docs/visual-testing.md)                     | Screenshot-based visual regression testing, its platform gotcha, and masking dynamic content automatically                                    |
 | [docs/odata-mocking.md](docs/odata-mocking.md)                       | Mocking OData V2/V4 responses with the correct JSON envelope shapes                                                                           |
 | [docs/odata-metadata.md](docs/odata-metadata.md)                     | Validating a mock against a real service's `$metadata` - catching a typo'd property before the app does                                       |
 | [docs/api-reference.md](docs/api-reference.md)                       | Every exported class, function, and type                                                                                                      |
