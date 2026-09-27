@@ -20,6 +20,8 @@ asynchronously as data binds and routes change, and shows/hides busy indicators 
 - **Page Object base class** (`Ui5Page`) with a tiny, consistent API.
 - **A Page Object generator CLI** that inspects a running SAPUI5 app and writes a starter Page
   Object class from its live control tree.
+- **A test-suite generator CLI** (`pw-sapui5 generate-tests`) that loads your app, works out what
+  it is - routes, control mix, measured startup - and writes a runnable starter suite for it.
 - **A project scaffolding CLI** (`pw-sapui5 init`) that sets up a whole runnable project - config,
   example test, editor setup - in one command.
 - **Custom `expect` matchers** (`toHaveUi5Property`, `toHaveUi5Text`, `toBeUi5Busy`) that read a
@@ -152,6 +154,7 @@ export class CartPage extends Ui5Page {
 | [docs/messages.md](docs/messages.md)                                 | `Ui5MessageToast` (race-free toast assertions) and `Ui5Messages` (validation/backend errors)                                                  |
 | [docs/demo-apps.md](docs/demo-apps.md)                               | Four real, free demo apps (Fiori Elements, master-detail, PlanningCalendar, a different shell)                                                |
 | [docs/examples.md](docs/examples.md)                                 | A guided tour of every example test - search, self-healing, data-driven tests, network mocking, and more                                      |
+| [docs/test-generator.md](docs/test-generator.md)                     | `pw-sapui5 generate-tests` - generate a runnable test suite from an app URL                                                                   |
 | [docs/generator.md](docs/generator.md)                               | The `pw-sapui5 generate` CLI, options, and its limits                                                                                         |
 | [docs/multi-environment-config.md](docs/multi-environment-config.md) | Pointing tests at dev/QA/prod via env vars instead of hardcoded URLs                                                                          |
 | [docs/authentication.md](docs/authentication.md)                     | Logging in once and reusing the session across tests                                                                                          |

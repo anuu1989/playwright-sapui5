@@ -1240,6 +1240,77 @@ export function bridgeScript(): void {
   }
 
   /**
+   * Reads the app's `manifest.json` descriptor - its id, title, declared OData data sources, and
+   * crucially its **routing table**. Backs the test generator's app analysis (see
+   * `src/generator/analyzeApp.ts` and docs/test-generator.md).
+   *
+   * The routing table is what makes generating *navigation* tests possible at all: it names every
+   * screen the app can reach and the URL pattern for each. A pattern's parameters also say
+   * whether a route is safely reachable blind - `category/{id}` needs a real id the generator has
+   * no way to invent, while `cart` or `checkout` can simply be navigated to.
+   */
+  function getAppManifestInfo() {
+    const result: Record<string, any> = {
+      found: false,
+      appId: undefined,
+      appTitle: undefined,
+      componentName: undefined,
+      routerClass: undefined,
+      routes: [],
+      dataSources: [],
+    };
+    try {
+      const ComponentModule =
+        w.sap && w.sap.ui && typeof w.sap.ui.require === 'function'
+          ? w.sap.ui.require('sap/ui/core/Component')
+          : null;
+      if (!ComponentModule || !ComponentModule.registry) return result;
+      const all = ComponentModule.registry.all();
+      const ids = Object.keys(all);
+      if (ids.length === 0) return result;
+      const component = all[ids[0]];
+      result.found = true;
+      try {
+        result.componentName = component.getMetadata().getName();
+      } catch {
+        // ignore
+      }
+
+      const manifest = typeof component.getManifest === 'function' ? component.getManifest() : null;
+      if (!manifest) return result;
+
+      const app = manifest['sap.app'] || {};
+      result.appId = app.id;
+      // `title` is often an i18n placeholder like "{{appTitle}}" - the caller resolves it.
+      result.appTitle = app.title;
+      result.dataSources = app.dataSources ? Object.keys(app.dataSources) : [];
+
+      const routing = (manifest['sap.ui5'] || {}).routing || {};
+      result.routerClass = routing.config ? routing.config.routerClass : undefined;
+      result.routes = (routing.routes || []).map((route: any) => {
+        const pattern = String(route.pattern === undefined ? '' : route.pattern);
+        // SAPUI5 route patterns mark required parameters as `{name}` and optional ones as
+        // `:name:` - the difference decides whether a route can be navigated to without
+        // inventing data.
+        const required: string[] = [];
+        const optional: string[] = [];
+        pattern.replace(/\{([^}]+)\}/g, (_m: string, name: string) => {
+          required.push(name);
+          return '';
+        });
+        pattern.replace(/:([^:/]+):/g, (_m: string, name: string) => {
+          optional.push(name);
+          return '';
+        });
+        return { name: route.name, pattern, required, optional };
+      });
+    } catch {
+      return result;
+    }
+    return result;
+  }
+
+  /**
    * Every currently-rendered control that reports itself as open right now, via SAPUI5's own
    * `isOpen()` method - both `sap.m.Dialog` and `sap.m.Popover` (and anything else that happens
    * to implement the same method) are covered by this one check, with no need to enumerate
@@ -1412,4 +1483,5 @@ export function bridgeScript(): void {
   bridge.getPerformanceMetrics = getPerformanceMetrics;
   bridge.getHash = getHash;
   bridge.routerNavTo = routerNavTo;
+  bridge.getAppManifestInfo = getAppManifestInfo;
 }

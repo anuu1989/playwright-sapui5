@@ -297,3 +297,26 @@ export interface Ui5BootstrapTimings {
   settledMs: number;
   metrics: Ui5PerformanceMetrics;
 }
+
+/** One route from an app's `manifest.json` routing table. `required` parameters (`{id}` in the
+ * pattern) must be supplied to navigate there; `optional` ones (`:id:`) need not be - which is
+ * what decides whether a route can be reached without inventing data. See
+ * `src/generator/analyzeApp.ts`. */
+export interface Ui5RouteInfo {
+  name: string;
+  pattern: string;
+  required: string[];
+  optional: string[];
+}
+
+/** An app's `manifest.json` descriptor as read from the running component
+ * (`Ui5Bridge.getAppManifestInfo`). */
+export interface Ui5ManifestInfo {
+  found: boolean;
+  appId: string | undefined;
+  appTitle: string | undefined;
+  componentName: string | undefined;
+  routerClass: string | undefined;
+  routes: Ui5RouteInfo[];
+  dataSources: string[];
+}

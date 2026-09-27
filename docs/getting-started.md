@@ -161,6 +161,8 @@ more patterns, and [docs/auto-wait.md](auto-wait.md) for exactly what "settle" m
   call `.click()` or `goto()`? This traces it end to end with diagrams, against the real source.
 - [docs/locators.md](locators.md) - every locator strategy, plus **self-healing** (fallback
   locators that keep your tests passing when a primary strategy stops matching).
+- [docs/test-generator.md](test-generator.md) - point `pw-sapui5 generate-tests` at your app's
+  URL and get a runnable starter suite, derived from what the app actually renders.
 - [docs/generator.md](generator.md) - point a CLI at your running app and get a starter Page
   Object generated from its actual control tree, instead of writing every locator by hand.
 - [docs/expect-matchers.md](expect-matchers.md), [docs/ui5-table.md](ui5-table.md),

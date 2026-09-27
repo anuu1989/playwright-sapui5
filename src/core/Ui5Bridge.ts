@@ -9,6 +9,7 @@ import type {
   Ui5FilterDataResult,
   Ui5FlexibleColumnLayoutInfo,
   Ui5GridTableInfo,
+  Ui5ManifestInfo,
   Ui5I18nResult,
   Ui5MessageInfo,
   Ui5MessageToastRecord,
@@ -483,6 +484,13 @@ export class Ui5Bridge {
   static async getPerformanceMetrics(target: Ui5Target): Promise<Ui5PerformanceMetrics> {
     await this.ensure(target);
     return target.evaluate(() => (window as any).__pwSapUi5__.getPerformanceMetrics());
+  }
+
+  /** The app's manifest descriptor: id, title, data sources and routing table. Used by the test
+   * generator's app analysis - see `src/generator/analyzeApp.ts`. */
+  static async getAppManifestInfo(target: Ui5Target): Promise<Ui5ManifestInfo> {
+    await this.ensure(target);
+    return target.evaluate(() => (window as any).__pwSapUi5__.getAppManifestInfo());
   }
 
   /** The current URL hash - what identifies the screen in a hash-routed SAPUI5 app. Used by

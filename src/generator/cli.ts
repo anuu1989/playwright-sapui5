@@ -10,10 +10,13 @@ import { resolve } from 'node:path';
 import { Ui5Bridge } from '../core/Ui5Bridge';
 import { waitForUi5, waitForUi5Core } from '../core/waits';
 import { generatePageObjectSource } from './generatePageObjectSource';
+import { analyzeUi5App } from './analyzeApp';
+import { generateTestSource } from './generateTestSource';
 import { runInit } from './initCommand';
 
 /**
- * This file is deliberately thin: it defines the CLI's two subcommands (`generate` and `init`),
+ * This file is deliberately thin: it defines the CLI's subcommands (`generate`, `generate-tests`
+ * and `init`),
  * parses their flags with the `commander` library, and calls straight into the same building
  * blocks the rest of the framework uses (`Ui5Bridge`, `waitForUi5*`) or into the other two
  * generator files (`generatePageObjectSource`, `runInit`) for the actual work. Nothing here is
@@ -87,6 +90,67 @@ program
         // `finally` guarantees the browser closes whether the `try` block succeeded or threw -
         // without this, a failed navigation or a bad URL would leave an orphaned Chromium
         // process running in the background every time.
+        await browser.close();
+      }
+    },
+  );
+
+// --- `pw-sapui5 generate-tests` ---------------------------------------------------------------
+// See docs/test-generator.md. Same shape as `generate` above - drive a real browser, inspect a
+// real app - but where that writes a Page Object describing the app's *controls*, this analyses
+// what kind of app it is (its routes, its control mix, its measured startup) and writes a runnable
+// spec file. The analysis lives in `analyzeApp.ts` and the templating in `generateTestSource.ts`;
+// this command only glues them together.
+program
+  .command('generate-tests')
+  .description('Inspect a running SAPUI5 app and generate a runnable starter test suite for it')
+  .requiredOption('-u, --url <url>', 'URL of the SAPUI5 app to inspect')
+  .option('-o, --output <path>', 'Output spec file path', './generated.spec.ts')
+  .option('-t, --title <title>', 'Title for the generated test.describe block')
+  .option(
+    '--import-from <module>',
+    'Module the generated file imports the framework from',
+    'playwright-sapui5',
+  )
+  .option('--headed', 'Run the inspection browser in headed mode', false)
+  .option('--timeout <ms>', 'Navigation / ready timeout in milliseconds', '30000')
+  .action(
+    async (opts: {
+      url: string;
+      output: string;
+      title?: string;
+      importFrom: string;
+      headed: boolean;
+      timeout: string;
+    }) => {
+      const timeout = Number(opts.timeout);
+      console.log(`Launching browser and analysing ${opts.url} ...`);
+      const browser = await chromium.launch({ headless: !opts.headed });
+      try {
+        const page = await browser.newPage();
+        const analysis = await analyzeUi5App(page, opts.url, { timeout });
+
+        // A short report, because the analysis is the interesting part - it's what decides which
+        // tests get written, so it's worth seeing rather than hiding behind the output file.
+        console.log(`  App:      ${analysis.appTitle ?? analysis.appId ?? '(unnamed)'}`);
+        console.log(`  Controls: ${analysis.totalControls} rendered`);
+        console.log(
+          `  Routes:   ${analysis.navigableRoutes.length} navigable, ${analysis.parameterizedRoutes.length} need parameters`,
+        );
+        const detected = Object.entries(analysis.features)
+          .filter(([, present]) => present)
+          .map(([feature]) => feature);
+        console.log(`  Detected: ${detected.length > 0 ? detected.join(', ') : 'nothing special'}`);
+        console.log(`  Startup:  ~${analysis.bootstrapMs}ms to settle`);
+
+        const source = generateTestSource(analysis, {
+          title: opts.title,
+          importFrom: opts.importFrom,
+        });
+        writeFileSync(opts.output, source, 'utf-8');
+        console.log(`\nTest suite written to ${opts.output}`);
+        console.log('Run it with:  npx playwright test ' + opts.output);
+      } finally {
         await browser.close();
       }
     },
