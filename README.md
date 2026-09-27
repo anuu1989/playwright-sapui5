@@ -164,6 +164,133 @@ export class CartPage extends Ui5Page {
 | [docs/api-reference.md](docs/api-reference.md)                       | Every exported class, function, and type                                                                                                      |
 | [docs/troubleshooting.md](docs/troubleshooting.md)                   | Common errors and how to fix them                                                                                                             |
 
+## CLI reference
+
+Everything the `pw-sapui5` command can do. All three subcommands are also documented in depth:
+[`init`](docs/init.md), [`generate`](docs/generator.md), [`generate-tests`](docs/test-generator.md).
+
+```bash
+npx pw-sapui5 --help            # list the subcommands
+npx pw-sapui5 <command> --help  # options for one of them
+npx pw-sapui5 --version
+```
+
+Installed as a dependency the binary is on your path, so `npx pw-sapui5 ...` works from the
+project root. Running it from a clone of this repo instead, use `node dist/generator/cli.js ...`
+after `npm run build`.
+
+### `pw-sapui5 init`
+
+Scaffolds a ready-to-run project: `playwright.config.ts`, `tsconfig.json`, an example Page Object
+and spec, `.env.example`, VS Code settings, and `.gitignore` entries.
+
+| Option                 | Default                         | What it does                                                                                               |
+| ---------------------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `-d, --dir <path>`     | `.`                             | Directory to scaffold into. Created if missing.                                                            |
+| `-b, --base-url <url>` | `https://your-app.example.com/` | Baked into `playwright.config.ts` as the `baseURL`, so tests can use relative paths.                       |
+| `-f, --force`          | `false`                         | Overwrite files that already exist. Without it, existing files are left untouched and reported as skipped. |
+
+```bash
+# A whole new project in one command
+mkdir my-tests && cd my-tests && npm init -y
+npm install --save-dev playwright-sapui5 @playwright/test dotenv typescript @types/node
+npx pw-sapui5 init --base-url https://your-app.example.com/
+npx playwright install chromium
+npx playwright test
+
+# Scaffold into a subdirectory instead of the current one
+npx pw-sapui5 init --dir e2e --base-url https://your-app.example.com/
+
+# Re-scaffold, replacing files you have already edited (destructive - commit first)
+npx pw-sapui5 init --force
+```
+
+### `pw-sapui5 generate`
+
+Inspects a **running** app and writes a starter Page Object from its live control tree - a getter
+per control it found, with each control's real text/title/value in a comment above it.
+
+| Option                    | Default              | What it does                                                                              |
+| ------------------------- | -------------------- | ----------------------------------------------------------------------------------------- |
+| `-u, --url <url>`         | _(required)_         | The app to inspect.                                                                       |
+| `-o, --output <path>`     | `./GeneratedPage.ts` | Where to write the file.                                                                  |
+| `-c, --class-name <name>` | `GeneratedPage`      | Name of the generated class.                                                              |
+| `--headed`                | `false`              | Show the browser while it inspects - useful when an app needs a login or is slow to boot. |
+| `--timeout <ms>`          | `30000`              | Navigation and ready timeout.                                                             |
+
+```bash
+# Simplest form
+npx pw-sapui5 generate --url https://your-app.example.com/
+
+# Name the class and choose where it lands
+npx pw-sapui5 generate \
+  --url https://your-app.example.com/ \
+  --output pages/ProductListPage.ts \
+  --class-name ProductListPage
+
+# Watch it work, and allow longer for a slow app
+npx pw-sapui5 generate --url https://your-app.example.com/ --headed --timeout 60000
+
+# Try it against SAP's own public demo
+npx pw-sapui5 generate \
+  --url https://ui5.sap.com/test-resources/sap/m/demokit/cart/webapp/index.html \
+  --output /tmp/CartPage.ts --class-name CartPage
+```
+
+### `pw-sapui5 generate-tests`
+
+Inspects a running app and writes a **runnable test suite** for it - smoke, startup budget, one
+test per navigable route, and assertions matched to the controls it found. See
+[docs/test-generator.md](docs/test-generator.md) for what it will and won't generate.
+
+| Option                   | Default               | What it does                                                                                                                                                                          |
+| ------------------------ | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `-u, --url <url>`        | _(required)_          | The app to analyse.                                                                                                                                                                   |
+| `-o, --output <path>`    | `./generated.spec.ts` | Where to write the spec file.                                                                                                                                                         |
+| `-t, --title <title>`    | the app's own title   | Name for the generated `test.describe` block.                                                                                                                                         |
+| `--import-from <module>` | `playwright-sapui5`   | Module the generated file imports from. Change it when the generated file sits somewhere that resolves the framework differently - e.g. inside this repo, where it's a relative path. |
+| `--headed`               | `false`               | Show the browser during analysis.                                                                                                                                                     |
+| `--timeout <ms>`         | `30000`               | Navigation and ready timeout.                                                                                                                                                         |
+
+```bash
+# Generate and immediately run
+npx pw-sapui5 generate-tests --url https://your-app.example.com/ --output tests/app.spec.ts
+npx playwright test tests/app.spec.ts
+
+# Give the suite a name of your own
+npx pw-sapui5 generate-tests \
+  --url https://your-app.example.com/ \
+  --output tests/orders.spec.ts \
+  --title "Orders - smoke"
+
+# A slow app, watched
+npx pw-sapui5 generate-tests --url https://your-app.example.com/ --headed --timeout 90000
+
+# Try it against SAP's own public demos
+npx pw-sapui5 generate-tests \
+  --url https://ui5.sap.com/test-resources/sap/m/demokit/cart/webapp/index.html \
+  --output /tmp/cart.spec.ts
+```
+
+It prints what it found before writing, because the analysis is what decides which tests you get:
+
+```
+  App:      Shopping Cart
+  Controls: 217 rendered
+  Routes:   5 navigable, 5 need parameters
+  Detected: flexibleColumnLayout, list, searchField
+  Startup:  ~2519ms to settle
+```
+
+### Notes that apply to both generators
+
+- **The app must be reachable and already running.** Both commands drive a real browser to a real
+  URL; neither starts a server for you.
+- **Apps behind a login** need `--headed` so you can sign in while the browser is open, or a
+  pre-authenticated storage state - see [docs/authentication.md](docs/authentication.md).
+- **Output is a starting point, not a finished artifact.** Both files are meant to be edited and
+  committed; regenerating overwrites them.
+
 ## Project layout
 
 ```

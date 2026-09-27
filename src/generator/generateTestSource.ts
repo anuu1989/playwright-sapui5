@@ -32,14 +32,14 @@ export function generateTestSource(
   const lines: string[] = [];
 
   lines.push(...fileHeader(analysis, title));
-  lines.push(`import { test, expect } from ${JSON.stringify(importFrom)};`);
+  lines.push(`import { test, expect } from ${quote(importFrom)};`);
   if (imports.length > 0) {
-    lines.push(`import { ${imports.join(', ')} } from ${JSON.stringify(importFrom)};`);
+    lines.push(`import { ${imports.join(', ')} } from ${quote(importFrom)};`);
   }
   lines.push('');
-  lines.push(`const APP_URL = ${JSON.stringify(analysis.url)};`);
+  lines.push(`const APP_URL = ${quote(analysis.url)};`);
   lines.push('');
-  lines.push(`test.describe(${JSON.stringify(title)}, () => {`);
+  lines.push(`test.describe(${quote(title)}, () => {`);
   lines.push(...beforeEachBlock());
 
   lines.push(...smokeTest());
@@ -75,6 +75,13 @@ function beforeEachBlock(): string[] {
     '    });',
     '  });',
   ];
+}
+
+/** Emits a single-quoted string literal, matching the quote style of the rest of the generated
+ * code. `JSON.stringify` would be simpler but always double-quotes, leaving generated files
+ * inconsistent with themselves until someone runs Prettier over them. */
+function quote(value: string): string {
+  return `'${value.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`;
 }
 
 /** Which tests this app warrants. Computed once so the emitted tests and the import list are

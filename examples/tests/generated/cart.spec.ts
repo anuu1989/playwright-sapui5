@@ -49,7 +49,7 @@ test.describe('Shopping Cart', () => {
   test('starts up within a sensible budget', async ({ page }) => {
     const timings = await Ui5Performance.measureBootstrap(page, APP_URL);
 
-    // Measured at ~2703ms when these tests were generated; this ceiling is
+    // Measured at ~2617ms when these tests were generated; this ceiling is
     // roughly 3x that, so it catches a real regression without flaking on a slow CI runner.
     expect(timings.settledMs).toBeLessThan(15000);
   });
