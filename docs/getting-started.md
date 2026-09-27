@@ -198,6 +198,8 @@ more patterns, and [docs/auto-wait.md](auto-wait.md) for exactly what "settle" m
 - [docs/odata-mocking.md](odata-mocking.md) and [docs/odata-metadata.md](odata-metadata.md) -
   mocking OData responses with the correct envelope shapes, and checking a mock against a real
   service's own `$metadata` before it ships.
+- [docs/odata-client.md](odata-client.md) - `Ui5ODataClient`, for seeding or cleaning up backend
+  data directly, bypassing the UI, with the CSRF handshake handled.
 - [docs/variant-management.md](variant-management.md) - `Ui5VariantManagement`, for a list
   report's saved filter/column configurations.
 - [docs/flexible-column-layout.md](flexible-column-layout.md) - `Ui5FlexibleColumnLayout`, for

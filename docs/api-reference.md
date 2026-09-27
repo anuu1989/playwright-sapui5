@@ -796,6 +796,26 @@ interface ODataValidationIssue {
 
 See [docs/odata-metadata.md](odata-metadata.md).
 
+## `Ui5ODataClient`
+
+```ts
+class Ui5ODataClient {
+  static create(
+    request: APIRequestContext,
+    serviceUrl: string,
+    options?: { headers?: Record<string, string> },
+  ): Promise<Ui5ODataClient>;
+
+  read(path: string): Promise<unknown>;
+  create(entitySet: string, data: Record<string, unknown>): Promise<unknown>;
+  update(entityPath: string, data: Record<string, unknown>): Promise<void>;
+  delete(entityPath: string): Promise<void>;
+}
+```
+
+Direct OData V2 access for test setup/teardown, with SAP Gateway's CSRF handshake handled. See
+[docs/odata-client.md](odata-client.md).
+
 ## Types
 
 ```ts

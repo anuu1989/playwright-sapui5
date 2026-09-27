@@ -50,6 +50,7 @@ import { test, expect, ui5 } from 'playwright-sapui5';
 | [Work out why a test failed](#how-do-i-work-out-why-a-test-failed)                                                                                   |
 | [Mock an OData backend](#how-do-i-mock-an-odata-backend)                                                                                             |
 | [Check a mock against the real backend's actual schema](#how-do-i-check-a-mock-against-the-real-backends-actual-schema)                              |
+| [Seed or clean up backend data without going through the UI](#how-do-i-seed-or-clean-up-backend-data-without-going-through-the-ui)                   |
 | [Test an app inside an iframe](#how-do-i-test-an-app-inside-an-iframe)                                                                               |
 | [Generate tests or Page Objects from a URL](#how-do-i-generate-tests-or-page-objects-from-a-url)                                                     |
 | [Report results to Jira](#how-do-i-report-results-to-jira)                                                                                           |
@@ -693,6 +694,27 @@ binding failure inside the app. Deliberately lenient about OData's known seriali
 (`Edm.Decimal`/`Edm.Int64` as quoted strings), so it won't false-flag correctly-shaped data.
 
 → [odata-metadata.md](odata-metadata.md)
+
+### How do I seed or clean up backend data without going through the UI?
+
+```ts
+import { Ui5ODataClient } from 'playwright-sapui5';
+
+const odata = await Ui5ODataClient.create(page.request, 'https://your-service/odata/v2/MyService');
+await odata.create('Products', { ProductID: 'P1', Name: 'Widget' });
+// ... test opens the app and finds Product P1 already there ...
+await odata.delete("Products('P1')"); // clean up regardless of how the test went
+```
+
+Handles SAP Gateway's CSRF handshake for you - a `GET` with `X-CSRF-Token: Fetch`, then that token
+attached to every write. Pass `page.request` specifically and the call reuses the page's own
+session cookies, so it's already authenticated as whatever the page is logged in as.
+
+**The trap:** `page.route()` does **not** mock a backend for this - it only intercepts requests
+the browser page makes, and `Ui5ODataClient` calls go straight from Node. Use a real (if local)
+HTTP server to fake a backend for it instead.
+
+→ [odata-client.md](odata-client.md)
 
 ### How do I test an app inside an iframe?
 
