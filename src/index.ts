@@ -106,4 +106,16 @@ export type {
   MockODataCollectionOptions,
   MockODataErrorOptions,
   MockODataBatchPart,
+  ODataMockMetadataOptions,
 } from './core/odataMock';
+export {
+  fetchODataMetadata,
+  parseODataMetadata,
+  validateAgainstODataMetadata,
+} from './core/odataMetadata';
+export type {
+  ODataMetadata,
+  ODataEntityTypeSchema,
+  ODataPropertySchema,
+  ODataValidationIssue,
+} from './core/odataMetadata';

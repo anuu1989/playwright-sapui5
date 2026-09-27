@@ -49,6 +49,7 @@ import { test, expect, ui5 } from 'playwright-sapui5';
 | [Measure how slow the app is](#how-do-i-measure-how-slow-the-app-is)                                                            |
 | [Work out why a test failed](#how-do-i-work-out-why-a-test-failed)                                                              |
 | [Mock an OData backend](#how-do-i-mock-an-odata-backend)                                                                        |
+| [Check a mock against the real backend's actual schema](#how-do-i-check-a-mock-against-the-real-backends-actual-schema)         |
 | [Test an app inside an iframe](#how-do-i-test-an-app-inside-an-iframe)                                                          |
 | [Generate tests or Page Objects from a URL](#how-do-i-generate-tests-or-page-objects-from-a-url)                                |
 | [Report results to Jira](#how-do-i-report-results-to-jira)                                                                      |
@@ -675,6 +676,22 @@ await mockODataBatch(page, '**/svc/$batch', [
 ```
 
 → [odata-mocking.md](odata-mocking.md)
+
+### How do I check a mock against the real backend's actual schema?
+
+```ts
+import { fetchODataMetadata, mockODataCollection } from 'playwright-sapui5';
+
+const metadata = await fetchODataMetadata('https://your-service/$metadata');
+await mockODataCollection(page, '**/Products', data, { metadata, entityType: 'Product' });
+```
+
+Throws immediately, naming the exact property, if `data` doesn't match `Product`'s real shape on
+the actual service - a typo'd or renamed field caught at test-setup time instead of as a confusing
+binding failure inside the app. Deliberately lenient about OData's known serialization quirks
+(`Edm.Decimal`/`Edm.Int64` as quoted strings), so it won't false-flag correctly-shaped data.
+
+→ [odata-metadata.md](odata-metadata.md)
 
 ### How do I test an app inside an iframe?
 

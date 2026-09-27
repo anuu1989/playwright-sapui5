@@ -1,4 +1,5 @@
 import type { Page } from '@playwright/test';
+import { validateAgainstODataMetadata, type ODataMetadata } from './odataMetadata';
 
 /**
  * Ergonomic wrappers around Playwright's own `page.route()`, purpose-built for the JSON envelope
@@ -14,11 +15,47 @@ import type { Page } from '@playwright/test';
 
 export type ODataVersion = 'v2' | 'v4';
 
-export interface MockODataCollectionOptions {
+/** Shared by `mockODataCollection`/`mockODataEntity` - validating `data` against a real service's
+ * `$metadata` before mocking. See docs/odata-metadata.md. */
+export interface ODataMockMetadataOptions {
+  /** A parsed `$metadata` schema (from `fetchODataMetadata`/`parseODataMetadata`). When given,
+   * `data` is checked against `entityType`'s real shape before the route is even registered - a
+   * mismatch throws immediately, naming the exact property, instead of surfacing later as a
+   * confusing binding error inside the app. */
+  metadata?: ODataMetadata;
+  /** Which entity type in `metadata` to validate `data` against. Required when `metadata` is
+   * given. */
+  entityType?: string;
+}
+
+export interface MockODataCollectionOptions extends ODataMockMetadataOptions {
   /** Which OData JSON envelope shape to use. Default `'v2'`. */
   version?: ODataVersion;
   /** HTTP status code for the mocked response. Default `200`. */
   status?: number;
+}
+
+/** Runs the `metadata`/`entityType` check shared by `mockODataCollection` and `mockODataEntity`,
+ * throwing with every issue found at once rather than one at a time. A no-op when `metadata` isn't
+ * given, which is the common case. */
+function checkAgainstMetadata(
+  functionName: string,
+  data: Record<string, unknown> | Record<string, unknown>[],
+  options: ODataMockMetadataOptions,
+): void {
+  if (!options.metadata) return;
+  if (!options.entityType) {
+    throw new Error(
+      `[playwright-sapui5] ${functionName}: options.entityType is required when options.metadata is given.`,
+    );
+  }
+  const issues = validateAgainstODataMetadata(options.metadata, options.entityType, data);
+  if (issues.length > 0) {
+    throw new Error(
+      `[playwright-sapui5] ${functionName}: mock data doesn't match "${options.entityType}" in the real service's $metadata:\n` +
+        issues.map((issue) => `  ${issue.path}: ${issue.message}`).join('\n'),
+    );
+  }
 }
 
 /**
@@ -37,6 +74,11 @@ export interface MockODataCollectionOptions {
  * Must be called **before navigation** - same rule as every other `page.route()` usage (and as
  * installing this framework's own bridge before `page.goto()`) - see
  * docs/auto-wait.md#the-ordering-gotcha-bridge-installation-vs-navigation.
+ *
+ * Pass `options.metadata` (from `fetchODataMetadata`) and `options.entityType` to validate `data`
+ * against the real service's published schema before mocking - catches a typo'd or renamed
+ * property immediately, by name, instead of as a confusing binding failure inside the app. See
+ * docs/odata-metadata.md.
  */
 export async function mockODataCollection(
   page: Page,
@@ -44,6 +86,7 @@ export async function mockODataCollection(
   data: Record<string, unknown>[],
   options: MockODataCollectionOptions = {},
 ): Promise<void> {
+  checkAgainstMetadata('mockODataCollection', data, options);
   const version = options.version ?? 'v2';
   const status = options.status ?? 200;
   await page.route(urlPattern, (route) =>
@@ -61,6 +104,9 @@ export async function mockODataCollection(
  * entity as `{ d: <entity> }`; V4 returns the entity object directly (optionally with an
  * `@odata.context` field real V4 services include, which this omits by default since most apps
  * don't assert on it - pass it as a regular field in `data` yourself if yours does).
+ *
+ * Accepts the same `options.metadata`/`options.entityType` schema check as `mockODataCollection` -
+ * see docs/odata-metadata.md.
  */
 export async function mockODataEntity(
   page: Page,
@@ -68,6 +114,7 @@ export async function mockODataEntity(
   data: Record<string, unknown>,
   options: MockODataCollectionOptions = {},
 ): Promise<void> {
+  checkAgainstMetadata('mockODataEntity', data, options);
   const version = options.version ?? 'v2';
   const status = options.status ?? 200;
   await page.route(urlPattern, (route) =>

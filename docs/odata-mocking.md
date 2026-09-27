@@ -156,3 +156,19 @@ prove it works. See the last test in
 Only the read side is generated. Change sets - the nested `multipart/mixed` blocks a batch uses to
 carry `POST`/`PUT`/`DELETE` - aren't produced; mock those at a higher level, or assert on the
 outgoing request instead.
+
+## Validating a mock against the real service's contract
+
+`mockODataCollection`/`mockODataEntity` accept `options.metadata`/`options.entityType` to check
+`data` against the real service's own `$metadata` before mocking - catching a typo'd or renamed
+property immediately instead of as a confusing binding failure inside the app:
+
+```ts
+import { fetchODataMetadata, mockODataCollection } from 'playwright-sapui5';
+
+const metadata = await fetchODataMetadata('https://your-service/$metadata');
+await mockODataCollection(page, '**/Products', data, { metadata, entityType: 'Product' });
+```
+
+See [docs/odata-metadata.md](odata-metadata.md) for what's checked, what's deliberately not, and
+how it's verified against two real, live OData V2/V4 services.

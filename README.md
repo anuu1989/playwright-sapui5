@@ -70,6 +70,10 @@ asynchronously as data binds and routes change, and shows/hides busy indicators 
 - **Locator health reporting** - aggregates self-heals across a whole CI run into "these locators
   need fixing", instead of a live console warning you only see if you're watching - see
   [docs/locator-health.md](docs/locator-health.md).
+- **`$metadata`-validated OData mocking** - check a mock's shape against a real service's own
+  published schema before mocking, catching a typo'd or renamed property at test-setup time
+  instead of as a confusing binding failure inside the app - see
+  [docs/odata-metadata.md](docs/odata-metadata.md).
 - **Four real, free demo-app walkthroughs** - a complete Fiori Elements List Report + Object Page,
   classic master-detail navigation, `sap.m.PlanningCalendar`, and a different app shell
   (`sap.tnt.ToolPage`) - see [docs/demo-apps.md](docs/demo-apps.md).
@@ -183,6 +187,7 @@ export class CartPage extends Ui5Page {
 | [docs/accessibility.md](docs/accessibility.md)                       | Accessibility testing with axe-core                                                                                                           |
 | [docs/visual-testing.md](docs/visual-testing.md)                     | Screenshot-based visual regression testing, and its platform gotcha                                                                           |
 | [docs/odata-mocking.md](docs/odata-mocking.md)                       | Mocking OData V2/V4 responses with the correct JSON envelope shapes                                                                           |
+| [docs/odata-metadata.md](docs/odata-metadata.md)                     | Validating a mock against a real service's `$metadata` - catching a typo'd property before the app does                                       |
 | [docs/api-reference.md](docs/api-reference.md)                       | Every exported class, function, and type                                                                                                      |
 | [docs/troubleshooting.md](docs/troubleshooting.md)                   | Common errors and how to fix them                                                                                                             |
 

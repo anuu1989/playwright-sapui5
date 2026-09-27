@@ -713,15 +713,20 @@ function mockODataCollection(
   page: Page,
   urlPattern: string | RegExp,
   data: Record<string, unknown>[],
-  options?: { version?: 'v2' | 'v4'; status?: number },
+  options?: { version?: 'v2' | 'v4'; status?: number } & ODataMockMetadataOptions,
 ): Promise<void>;
 
 function mockODataEntity(
   page: Page,
   urlPattern: string | RegExp,
   data: Record<string, unknown>,
-  options?: { version?: 'v2' | 'v4'; status?: number },
+  options?: { version?: 'v2' | 'v4'; status?: number } & ODataMockMetadataOptions,
 ): Promise<void>;
+
+interface ODataMockMetadataOptions {
+  metadata?: ODataMetadata; // from fetchODataMetadata() - see docs/odata-metadata.md
+  entityType?: string; // required when metadata is given
+}
 
 function mockODataError(
   page: Page,
@@ -745,6 +750,41 @@ interface MockODataBatchPart {
 ```
 
 See [docs/odata-mocking.md](odata-mocking.md).
+
+## `$metadata` validation
+
+```ts
+function fetchODataMetadata(
+  url: string,
+  options?: { headers?: Record<string, string>; timeoutMs?: number },
+): Promise<ODataMetadata>;
+function parseODataMetadata(xml: string): ODataMetadata;
+function validateAgainstODataMetadata(
+  metadata: ODataMetadata,
+  entityType: string,
+  data: Record<string, unknown> | Record<string, unknown>[],
+): ODataValidationIssue[];
+
+interface ODataMetadata {
+  entityTypes: Map<string, ODataEntityTypeSchema>;
+}
+interface ODataEntityTypeSchema {
+  name: string;
+  properties: ODataPropertySchema[];
+  navigationPropertyNames: string[];
+}
+interface ODataPropertySchema {
+  name: string;
+  type: string; // e.g. 'Edm.String', 'Collection(Edm.String)'
+  nullable: boolean;
+}
+interface ODataValidationIssue {
+  path: string;
+  message: string;
+}
+```
+
+See [docs/odata-metadata.md](odata-metadata.md).
 
 ## Types
 
