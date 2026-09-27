@@ -55,6 +55,9 @@ asynchronously as data binds and routes change, and shows/hides busy indicators 
   usable (not just to `load`), and jump straight to a route instead of clicking through to it.
 - **Automatic failure diagnostics** - every failing test gets the SAPUI5 control tree attached to
   its report: what was actually rendered, of what type, with what text. No opt-in required.
+- **Direct Jira integration** - a reporter that posts run summaries to the Jira issues your tests
+  reference, and can file a bug per failure with the UI5 control tree attached. Straight to Jira's
+  REST API: no Xray, no Zephyr, no plugin in between - see [docs/jira.md](docs/jira.md).
 - **Four real, free demo-app walkthroughs** - a complete Fiori Elements List Report + Object Page,
   classic master-detail navigation, `sap.m.PlanningCalendar`, and a different app shell
   (`sap.tnt.ToolPage`) - see [docs/demo-apps.md](docs/demo-apps.md).
@@ -130,6 +133,7 @@ export class CartPage extends Ui5Page {
 | -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
 | [docs/typescript-for-beginners.md](docs/typescript-for-beginners.md) | **Start here if TypeScript itself is new to you** - every bit of syntax you'll meet, explained                                                |
 | [docs/getting-started.md](docs/getting-started.md)                   | Install, prerequisites, your first test, running it                                                                                           |
+| [docs/how-to.md](docs/how-to.md)                                     | **"How do I…?" cookbook** - every feature indexed by task, one runnable snippet each                                                          |
 | [docs/init.md](docs/init.md)                                         | `pw-sapui5 init` - scaffold a whole ready-to-run project in one command                                                                       |
 | [docs/core-concepts.md](docs/core-concepts.md)                       | Why SAPUI5 needs a different approach; how the framework works under the hood                                                                 |
 | [docs/architecture.md](docs/architecture.md)                         | **Code-level walkthrough**: every source file's job, and step-by-step traces of what actually runs for `goto()`, `.click()`, and self-healing |
@@ -148,6 +152,7 @@ export class CartPage extends Ui5Page {
 | [docs/performance.md](docs/performance.md)                           | `Ui5Performance` - how long the app takes to become usable, not just to load                                                                  |
 | [docs/navigation.md](docs/navigation.md)                             | `Ui5Navigation` - hash routing: jump straight to a route, confirm one happened                                                                |
 | [docs/diagnostics.md](docs/diagnostics.md)                           | The control tree attached to every failure - what was actually on the page                                                                    |
+| [docs/jira.md](docs/jira.md)                                         | Reporting results straight to Jira - linking tests to issues, filing bugs with the control tree attached                                      |
 | [docs/variant-management.md](docs/variant-management.md)             | `Ui5VariantManagement` - a list report's saved filter/column configurations                                                                   |
 | [docs/flexible-column-layout.md](docs/flexible-column-layout.md)     | `Ui5FlexibleColumnLayout` - the one/two/three-column Fiori shell                                                                              |
 | [docs/form-inputs.md](docs/form-inputs.md)                           | `Ui5Select` / `Ui5DatePicker` - dropdowns and dates, without the usual flakiness                                                              |
@@ -291,6 +296,42 @@ It prints what it found before writing, because the analysis is what decides whi
 - **Output is a starting point, not a finished artifact.** Both files are meant to be edited and
   committed; regenerating overwrites them.
 
+## Reporting to Jira
+
+Results can go **straight to Jira's REST API** - no Xray, no Zephyr, no plugin in between. Set the
+credentials in the environment and add the reporter:
+
+```bash
+export JIRA_BASE_URL="https://your-org.atlassian.net"
+export JIRA_EMAIL="you@your-company.com"
+export JIRA_API_TOKEN="your-api-token"
+export JIRA_PROJECT_KEYS="ABC"        # your real project keys - strongly recommended
+```
+
+```ts
+// playwright.config.ts
+reporter: [['list'], ['playwright-sapui5/reporter/jira']],
+```
+
+Then reference an issue from a test, in whichever way your team already does - an annotation, a
+tag, or anywhere in the title path:
+
+```ts
+test('checkout completes', { annotation: { type: 'jira', description: 'ABC-123' } }, async () => {
+  /* ... */
+});
+```
+
+After the run, each referenced issue gets a summary comment. Turn on `createIssueOnFailure` and
+each failure also files a bug with the **UI5 control tree attached**, which is usually enough for
+whoever picks it up to tell a real regression from a stale locator.
+
+Jira Cloud and Server/DC are both handled (they differ in REST path, auth scheme _and_ comment
+body format). `dryRun: true` shows you exactly what would be posted without sending anything -
+worth doing once before pointing this at a Jira your team reads. Full details, including why
+`JIRA_PROJECT_KEYS` matters (`UTF-8` is shaped exactly like a Jira key), are in
+[docs/jira.md](docs/jira.md).
+
 ## Project layout
 
 ```
@@ -300,7 +341,8 @@ src/               the library itself (what gets published to npm)
                    odataMock, waitForUi5, findUi5Frame, types
   browser/         the script injected into the browser to talk to SAPUI5's control tree
   fixtures/        a Playwright test/expect drop-in with a small auto-wait boost + custom matchers
-  generator/       the Page Object generator + its CLI
+  generator/       the Page Object generator, the test-suite generator + their CLI
+  integrations/    the direct Jira REST client, issue-key extraction, and the Jira reporter
   index.ts         public exports
 examples/          a full, runnable example test suite (against real public SAPUI5 demo apps)
 docs/              the documentation listed above

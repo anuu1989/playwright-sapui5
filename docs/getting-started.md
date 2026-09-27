@@ -154,6 +154,9 @@ more patterns, and [docs/auto-wait.md](auto-wait.md) for exactly what "settle" m
 
 ## 6. Where to go next
 
+- [docs/how-to.md](how-to.md) - **already know what you're trying to do?** Every feature below,
+  indexed by task ("How do I read rows from a table?", "How do I mock an OData backend?") with one
+  runnable snippet each - skip straight there instead of reading linearly.
 - [docs/core-concepts.md](core-concepts.md) - _why_ SAPUI5 apps need this, and how the framework
   talks to the SAPUI5 control tree under the hood. Worth reading once - it makes everything else
   make more sense.
@@ -186,6 +189,8 @@ more patterns, and [docs/auto-wait.md](auto-wait.md) for exactly what "settle" m
 - [docs/navigation.md](navigation.md) - `Ui5Navigation`, for jumping straight to a route.
 - [docs/diagnostics.md](diagnostics.md) - the SAPUI5 control tree, attached to every failing test
   automatically: what was really on the page when the locator gave up.
+- [docs/jira.md](jira.md) - report results straight to Jira, and file bugs with that control tree
+  attached, so whoever picks one up isn't starting from nothing.
 - [docs/variant-management.md](variant-management.md) - `Ui5VariantManagement`, for a list
   report's saved filter/column configurations.
 - [docs/flexible-column-layout.md](flexible-column-layout.md) - `Ui5FlexibleColumnLayout`, for

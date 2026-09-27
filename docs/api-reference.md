@@ -563,6 +563,52 @@ function summarizeByType(dump: Ui5ControlDump[]): { type: string; count: number 
 Attached to failing tests automatically by this package's `test` fixture - see
 [docs/diagnostics.md](diagnostics.md).
 
+## Jira
+
+See [docs/jira.md](jira.md) for full usage.
+
+```ts
+// The reporter, registered by path in playwright.config.ts:
+//   reporter: [['playwright-sapui5/reporter/jira', { projectKeys: ['ABC'] }]]
+
+class JiraClient {
+  constructor(options: JiraClientOptions);
+  readonly requestLog: JiraRequestLogEntry[];
+  addComment(issueKey: string, text: string): Promise<void>;
+  createIssue(input: {
+    projectKey: string;
+    summary: string;
+    description: string;
+    issueType: string;
+    fields?: Record<string, unknown>;
+  }): Promise<string | undefined>;
+  addAttachment(issueKey: string, fileName: string, content: string): Promise<void>;
+}
+
+/** `undefined` when the environment has no usable credentials. */
+function jiraOptionsFromEnv(env?: NodeJS.ProcessEnv): JiraClientOptions | undefined;
+/** Wraps plain text in the minimal ADF envelope Jira Cloud requires. */
+function toAtlassianDocument(text: string): unknown;
+
+function extractIssueKeys(text: string, options?: IssueKeyOptions): string[];
+function issueKeysForTest(test: TestLikeForJira, options?: IssueKeyOptions): string[];
+
+interface IssueKeyOptions {
+  /** Your real project keys. Recommended - without it, `UTF-8` parses as an issue key. */
+  projectKeys?: string[];
+}
+
+interface JiraClientOptions {
+  baseUrl: string;
+  deployment?: 'cloud' | 'server';
+  email?: string;
+  apiToken?: string;
+  personalAccessToken?: string;
+  dryRun?: boolean;
+  timeoutMs?: number;
+}
+```
+
 ## OData mocking
 
 ```ts

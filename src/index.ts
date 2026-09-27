@@ -41,6 +41,13 @@ export { Ui5FlexibleColumnLayout } from './core/Ui5FlexibleColumnLayout';
 export { Ui5Performance } from './core/Ui5Performance';
 export { Ui5Navigation } from './core/Ui5Navigation';
 export { captureControlTree, formatControlTree, summarizeByType } from './core/diagnostics';
+// Jira integration - the reporter itself is also reachable as 'playwright-sapui5/reporter/jira',
+// which is the path you put in playwright.config.ts.
+export { JiraClient, jiraOptionsFromEnv, toAtlassianDocument } from './integrations/jiraClient';
+export type { JiraClientOptions, JiraDeployment } from './integrations/jiraClient';
+export { extractIssueKeys, issueKeysForTest } from './integrations/jiraIssueKeys';
+export type { TestLikeForJira, IssueKeyOptions } from './integrations/jiraIssueKeys';
+export type { JiraReporterOptions } from './integrations/JiraReporter';
 export { waitForUi5, waitForUi5Core } from './core/waits';
 export { findUi5Frame } from './core/findUi5Frame';
 export type { FindUi5FrameOptions } from './core/findUi5Frame';
