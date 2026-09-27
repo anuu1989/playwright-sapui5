@@ -323,6 +323,14 @@ export interface Ui5SplitAppInfo {
   detailPage: string | undefined;
 }
 
+/** A `sap.ui.mdc.Table`'s true row count and column headers (`Ui5Bridge.getMdcTableInfo`) - the
+ * table Fiori Elements for OData V4 renders. See `src/core/Ui5MdcTable.ts`. */
+export interface Ui5MdcTableInfo {
+  found: boolean;
+  rowCount: number | undefined;
+  columnHeaders: string[];
+}
+
 /** Load/performance numbers for a page (`Ui5Bridge.getPerformanceMetrics`). The browser timings
  * describe the document load; `ui5ResourceCount`/`controlCount` describe what SAPUI5 then pulled
  * in and built on top of it - which is where a UI5 app's real startup cost lives. See

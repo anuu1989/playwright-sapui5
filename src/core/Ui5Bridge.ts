@@ -12,6 +12,7 @@ import type {
   Ui5IconTabBarInfo,
   Ui5ManifestInfo,
   Ui5I18nResult,
+  Ui5MdcTableInfo,
   Ui5MessageInfo,
   Ui5MessageToastRecord,
   Ui5ModelPropertyResult,
@@ -582,6 +583,12 @@ export class Ui5Bridge {
   static async getSplitAppInfo(target: Ui5Target, id: string): Promise<Ui5SplitAppInfo> {
     await this.ensure(target);
     return target.evaluate(({ id }) => (window as any).__pwSapUi5__.getSplitAppInfo(id), { id });
+  }
+
+  /** A `sap.ui.mdc.Table`'s true row count and column headers. Used by `Ui5MdcTable`. */
+  static async getMdcTableInfo(target: Ui5Target, id: string): Promise<Ui5MdcTableInfo> {
+    await this.ensure(target);
+    return target.evaluate(({ id }) => (window as any).__pwSapUi5__.getMdcTableInfo(id), { id });
   }
 
   /** Activates a saved variant by key, applying its filters/columns/sorting. Used by

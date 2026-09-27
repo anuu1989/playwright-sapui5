@@ -1290,6 +1290,48 @@ export function bridgeScript(): void {
   }
 
   /**
+   * Reads a `sap.ui.mdc.Table`'s true row count and column headers - the "metadata-driven
+   * controls" (MDC) table that Fiori Elements for OData V4 (the flexible programming model, `sap.fe`)
+   * renders instead of `sap.ui.comp.smarttable.SmartTable`. `rowCount` comes from
+   * `getRowBinding().getLength()` - the binding's own count, the same honest source
+   * `getGridTableInfo`/`getSmartTableInfo` use for their tables, since a table's rendered row
+   * count and its true row count are different questions for any of these virtualizing/paged
+   * controls. Backs `Ui5MdcTable` - see docs/mdc-table.md.
+   *
+   * Deliberately narrow: row/cell text access isn't provided. `sap.ui.mdc.Table` wraps an inner
+   * table, but unlike `sap.ui.comp.smarttable.SmartTable`'s `_content` aggregation, its inner
+   * table wasn't reliably reachable in testing - the seemingly obvious `<id>-innerTable` control
+   * exists but doesn't hold the actually-rendered rows. Rather than ship an inner-table locator
+   * that might silently return zero rows, this only reads what was verified working: row count
+   * and column headers.
+   */
+  function getMdcTableInfo(id: string) {
+    const el = findByExactId(id);
+    if (!el || typeof el.getRowBinding !== 'function') {
+      return { found: false, rowCount: undefined, columnHeaders: [] };
+    }
+    let rowCount: number | undefined;
+    try {
+      const binding = el.getRowBinding();
+      rowCount =
+        binding && typeof binding.getLength === 'function' ? binding.getLength() : undefined;
+    } catch {
+      rowCount = undefined;
+    }
+    let columnHeaders: string[] = [];
+    try {
+      columnHeaders = (typeof el.getColumns === 'function' ? el.getColumns() : [])
+        .map((column: any) =>
+          typeof column.getHeader === 'function' ? column.getHeader() : undefined,
+        )
+        .filter((header: unknown): header is string => typeof header === 'string');
+    } catch {
+      columnHeaders = [];
+    }
+    return { found: true, rowCount, columnHeaders };
+  }
+
+  /**
    * Collects load/performance numbers for the current document. Backs `Ui5Performance.metrics()` -
    * see docs/performance.md.
    *
@@ -1665,6 +1707,7 @@ export function bridgeScript(): void {
   bridge.getObjectPageInfo = getObjectPageInfo;
   bridge.scrollObjectPageToSection = scrollObjectPageToSection;
   bridge.getSplitAppInfo = getSplitAppInfo;
+  bridge.getMdcTableInfo = getMdcTableInfo;
   bridge.getPerformanceMetrics = getPerformanceMetrics;
   bridge.getHash = getHash;
   bridge.routerNavTo = routerNavTo;

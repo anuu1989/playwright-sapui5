@@ -34,6 +34,7 @@ import { test, expect, ui5 } from 'playwright-sapui5';
 | [Work with a dialog](#how-do-i-work-with-a-dialog)                                                                                                   |
 | [Use a value help (F4) dialog](#how-do-i-use-a-value-help-f4-dialog)                                                                                 |
 | [Test a Fiori Elements list report](#how-do-i-test-a-fiori-elements-list-report)                                                                     |
+| [Test a Fiori Elements for OData V4 (sap.fe) list report](#how-do-i-test-a-fiori-elements-for-odata-v4-sapfe-list-report)                            |
 | [Switch a saved variant](#how-do-i-switch-a-saved-variant)                                                                                           |
 | [Pick from a dropdown](#how-do-i-pick-from-a-dropdown)                                                                                               |
 | [Set a date](#how-do-i-set-a-date)                                                                                                                   |
@@ -377,6 +378,31 @@ affect `search()`. If a filter doesn't seem to work, call `getFilterData()` firs
 shape it already uses for that field.
 
 → [smart-controls.md](smart-controls.md#setfilterdata-needs-the-right-shape-per-field)
+
+### How do I test a Fiori Elements for OData V4 (`sap.fe`) list report?
+
+A different control family from the OData V2 case above - `sap.ui.mdc.Table`, not `SmartTable`:
+
+```ts
+const table = ui5(page).controlType('sap.ui.mdc.Table');
+expect(await Ui5MdcTable.rowCount(page, table)).toBeGreaterThan(0);
+expect(await Ui5MdcTable.columnHeaders(page, table)).toContain('Status');
+```
+
+Filtering has no bulk-set API here - the obvious `setFilterConditions()`/`triggerSearch()` on the
+filter bar control was verified **not** to reliably reach the table. Fill the real rendered filter
+field instead, then click "Go":
+
+```ts
+const input = (await ui5(page).id('fe::FilterBar::Travel::FilterField::TravelID').resolve())
+  .locator('input')
+  .first();
+await input.fill('1');
+await input.press('Enter');
+await ui5(page).text('Go', { controlType: 'sap.m.Button' }).click();
+```
+
+→ [mdc-table.md](mdc-table.md)
 
 ### How do I switch a saved variant?
 

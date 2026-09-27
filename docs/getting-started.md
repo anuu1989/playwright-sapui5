@@ -176,6 +176,8 @@ more patterns, and [docs/auto-wait.md](auto-wait.md) for exactly what "settle" m
   Fiori Launchpad (and similar shell apps) load their tiles.
 - [docs/smart-controls.md](smart-controls.md) - `Ui5SmartFilterBar`/`Ui5SmartTable`, for
   Fiori Elements apps whose filter bar and result table are generated from OData metadata.
+- [docs/mdc-table.md](mdc-table.md) - `Ui5MdcTable`, the equivalent for Fiori Elements for OData
+  V4 (`sap.fe`), which renders a different control family entirely.
 - [docs/ui5-grid-table.md](ui5-grid-table.md) - `Ui5GridTable`, for `sap.ui.table.Table`'s
   virtualized rows (a plain `sap.m.Table` uses [`Ui5Table`](ui5-table.md) instead).
 - [docs/value-help-dialog.md](value-help-dialog.md) - `Ui5ValueHelpDialog`, for opening and

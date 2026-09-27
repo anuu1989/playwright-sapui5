@@ -41,6 +41,7 @@ export { Ui5FlexibleColumnLayout } from './core/Ui5FlexibleColumnLayout';
 export { Ui5IconTabBar } from './core/Ui5IconTabBar';
 export { Ui5ObjectPage } from './core/Ui5ObjectPage';
 export { Ui5SplitApp } from './core/Ui5SplitApp';
+export { Ui5MdcTable } from './core/Ui5MdcTable';
 export { Ui5Performance } from './core/Ui5Performance';
 export { Ui5Navigation } from './core/Ui5Navigation';
 export { captureControlTree, formatControlTree, summarizeByType } from './core/diagnostics';
@@ -100,6 +101,7 @@ export type {
   Ui5ObjectPageSection,
   Ui5ObjectPageInfo,
   Ui5SplitAppInfo,
+  Ui5MdcTableInfo,
   Ui5PerformanceMetrics,
   Ui5BootstrapTimings,
 } from './core/types';

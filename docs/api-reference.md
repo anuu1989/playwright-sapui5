@@ -309,6 +309,24 @@ class Ui5SmartTable {
 
 See [docs/smart-controls.md](smart-controls.md).
 
+## `Ui5MdcTable`
+
+Row count and column headers for `sap.ui.mdc.Table` - the table **Fiori Elements for OData V4**
+(`sap.fe`) renders, a different control family from `Ui5SmartTable` above. Deliberately read-only;
+see docs/mdc-table.md for why and for how to drive its filter bar.
+
+```ts
+class Ui5MdcTable {
+  static async rowCount(
+    target: Ui5Target,
+    table: Ui5Locator | Locator,
+  ): Promise<number | undefined>;
+  static async columnHeaders(target: Ui5Target, table: Ui5Locator | Locator): Promise<string[]>;
+}
+```
+
+See [docs/mdc-table.md](mdc-table.md).
+
 ## `Ui5GridTable`
 
 ```ts
