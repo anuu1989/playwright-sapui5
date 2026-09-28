@@ -184,7 +184,7 @@ async function clickRenderedItem(
 ): Promise<void> {
   const own = target.locator(idSelector(item.id));
   if ((await own.count()) > 0) {
-    await own.first().click();
+    await clickWithFallback(own.first());
     return;
   }
 
@@ -195,7 +195,7 @@ async function clickRenderedItem(
       .locator(idsSelector(rendered.map((control) => control.id)))
       .filter({ hasText: item.text ?? '' });
     if ((await candidates.count()) > 0) {
-      await candidates.first().click();
+      await clickWithFallback(candidates.first());
       return;
     }
   }
@@ -203,6 +203,28 @@ async function clickRenderedItem(
   throw new Error(
     `[playwright-sapui5] Ui5Select: the dropdown for ${selectId} is open, but no rendered entry matching "${item.text}" could be found to click.`,
   );
+}
+
+/**
+ * Clicks an item already resolved to a single, unambiguous element (by id, or by exact/contained
+ * rendered text - never a guess). Tries an ordinary click first, the same as any other locator in
+ * this framework - real user interaction, subject to Playwright's own visible/stable checks.
+ *
+ * The fallback exists for a real, if rare, failure mode: re-selecting an option that's *already*
+ * selected (e.g. `selectByKey(items[0].key)` right after `selectByText` already picked that same
+ * item) resolves to an element that's already carrying `aria-selected`/its "selected" CSS class
+ * *before* the click even starts - and on at least one observed CI run, Playwright's actionability
+ * check on that element never settled as visible/stable within the click's own timeout, even
+ * though the exact same target genuinely exists and is exactly the one intended. `force: true`
+ * skips that check and dispatches the click directly - safe specifically here, where the element
+ * was never ambiguous to begin with, unlike a locator this framework had to guess at.
+ */
+async function clickWithFallback(locator: Locator): Promise<void> {
+  try {
+    await locator.click({ timeout: 10000 });
+  } catch {
+    await locator.click({ force: true });
+  }
 }
 
 /** Accepts either a `Ui5Locator` or an already-resolved Playwright `Locator`, the same as the
