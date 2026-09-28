@@ -89,6 +89,19 @@ asynchronously as data binds and routes change, and shows/hides busy indicators 
   catalog of every distinct endpoint the app called, with a sample request/response each - `$batch`
   calls unpacked into their real embedded requests, not left as one opaque blob - see
   [docs/api-catalog.md](docs/api-catalog.md).
+- **`Ui5ODataSeeder`** - seeds test data via `Ui5ODataClient` and guarantees it's cleaned up
+  afterward (LIFO, with the delete predicate auto-derived from `$metadata` where that's safe to
+  do), instead of every test hand-rolling its own `try`/`finally` - see
+  [docs/odata-seeder.md](docs/odata-seeder.md).
+- **`Ui5ContentDensity`** - reads and forces SAPUI5's compact/cozy content density, verified to
+  genuinely change rendered row height on a real app, not just toggle a CSS class - see
+  [docs/content-density.md](docs/content-density.md).
+- **`Ui5Export`** - captures a Fiori "Export to Spreadsheet" download race-free and reads it back
+  as bytes, with a ZIP-signature check so a test can tell a real spreadsheet file came back from
+  an HTML error page - see [docs/export.md](docs/export.md).
+- **Flaky test detection** - a reporter that aggregates Playwright's own retry data into a
+  run-level report, and, given a history file, flags tests that aren't reliably passing across
+  runs as quarantine candidates - see [docs/flaky-tests.md](docs/flaky-tests.md).
 - **Four real, free demo-app walkthroughs** - a complete Fiori Elements List Report + Object Page,
   classic master-detail navigation, `sap.m.PlanningCalendar`, and a different app shell
   (`sap.tnt.ToolPage`) - see [docs/demo-apps.md](docs/demo-apps.md).
@@ -205,6 +218,10 @@ export class CartPage extends Ui5Page {
 | [docs/visual-testing.md](docs/visual-testing.md)                     | Screenshot-based visual regression testing, its platform gotcha, and masking dynamic content automatically                                    |
 | [docs/odata-mocking.md](docs/odata-mocking.md)                       | Mocking OData V2/V4 responses with the correct JSON envelope shapes                                                                           |
 | [docs/odata-client.md](docs/odata-client.md)                         | `Ui5ODataClient` - direct OData V2 API access for test setup/teardown, with the CSRF handshake handled                                        |
+| [docs/odata-seeder.md](docs/odata-seeder.md)                         | `Ui5ODataSeeder` - seeds test data and guarantees LIFO cleanup afterward, pass or fail                                                        |
+| [docs/content-density.md](docs/content-density.md)                   | `Ui5ContentDensity` - reading and forcing SAPUI5's compact/cozy content density                                                               |
+| [docs/export.md](docs/export.md)                                     | `Ui5Export` - capturing a Fiori "Export to Spreadsheet" download race-free, as bytes                                                          |
+| [docs/flaky-tests.md](docs/flaky-tests.md)                           | `FlakyTestReporter` - aggregating retries into a report, and flagging quarantine candidates across runs                                       |
 | [docs/odata-metadata.md](docs/odata-metadata.md)                     | Validating a mock against a real service's `$metadata` - catching a typo'd property before the app does                                       |
 | [docs/api-reference.md](docs/api-reference.md)                       | Every exported class, function, and type                                                                                                      |
 | [docs/troubleshooting.md](docs/troubleshooting.md)                   | Common errors and how to fix them                                                                                                             |

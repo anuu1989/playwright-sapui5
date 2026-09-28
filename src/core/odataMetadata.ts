@@ -30,6 +30,11 @@ export interface ODataEntityTypeSchema {
   /** Navigation property names (an `$expand`-able relationship, not a plain data field) - present
    * in mock data for an expanded query, and deliberately not type-checked. */
   navigationPropertyNames: string[];
+  /** Property names making up this entity type's `<Key>`, in declaration order - `['ProductID']`
+   * for a single key, `['ClientID', 'ChangeNumber']` for a composite one. Empty if `$metadata`
+   * declared no `<Key>` at all (malformed, but read helpers don't throw on that). Used by
+   * `Ui5ODataSeeder` (odataSeeder.ts) to auto-build a delete predicate from a created entity. */
+  keyPropertyNames: string[];
 }
 
 /** A parsed `$metadata` document. Entity types are keyed by their simple name (`'Product'`, not
@@ -86,7 +91,20 @@ export function parseODataMetadata(xml: string): ODataMetadata {
       if (navName) navigationPropertyNames.push(navName);
     }
 
-    entityTypes.set(name, { name, properties, navigationPropertyNames });
+    // `<Key><PropertyRef Name="ProductID" />...</Key>` - one block, order-preserving (composite
+    // keys are declared in a specific, meaningful order).
+    const keyPropertyNames: string[] = [];
+    const keyBlock = /<Key\b[^>]*>([\s\S]*?)<\/Key>/.exec(body);
+    if (keyBlock) {
+      const propRefTag = /<PropertyRef\b([^>]*?)\/?>/g;
+      let refMatch: RegExpExecArray | null;
+      while ((refMatch = propRefTag.exec(keyBlock[1]))) {
+        const refName = attribute(refMatch[1], 'Name');
+        if (refName) keyPropertyNames.push(refName);
+      }
+    }
+
+    entityTypes.set(name, { name, properties, navigationPropertyNames, keyPropertyNames });
   }
 
   return { entityTypes };

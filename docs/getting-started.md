@@ -204,6 +204,14 @@ more patterns, and [docs/auto-wait.md](auto-wait.md) for exactly what "settle" m
   service's own `$metadata` before it ships.
 - [docs/odata-client.md](odata-client.md) - `Ui5ODataClient`, for seeding or cleaning up backend
   data directly, bypassing the UI, with the CSRF handshake handled.
+- [docs/odata-seeder.md](odata-seeder.md) - `Ui5ODataSeeder`, for guaranteed LIFO cleanup of
+  whatever a test seeds, pass or fail, on top of `Ui5ODataClient`.
+- [docs/content-density.md](content-density.md) - `Ui5ContentDensity`, for reading and forcing
+  SAPUI5's compact/cozy content density.
+- [docs/export.md](export.md) - `Ui5Export`, for capturing a Fiori "Export to Spreadsheet"
+  download race-free and reading it back as bytes.
+- [docs/flaky-tests.md](flaky-tests.md) - `FlakyTestReporter`, for aggregating Playwright's own
+  retry data into a report and flagging quarantine candidates across runs.
 - [docs/variant-management.md](variant-management.md) - `Ui5VariantManagement`, for a list
   report's saved filter/column configurations.
 - [docs/flexible-column-layout.md](flexible-column-layout.md) - `Ui5FlexibleColumnLayout`, for

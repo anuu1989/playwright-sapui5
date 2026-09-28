@@ -53,6 +53,10 @@ import { test, expect, ui5 } from 'playwright-sapui5';
 | [Mock an OData backend](#how-do-i-mock-an-odata-backend)                                                                                             |
 | [Check a mock against the real backend's actual schema](#how-do-i-check-a-mock-against-the-real-backends-actual-schema)                              |
 | [Seed or clean up backend data without going through the UI](#how-do-i-seed-or-clean-up-backend-data-without-going-through-the-ui)                   |
+| [Make sure test data I seed always gets cleaned up, even on failure](#how-do-i-make-sure-test-data-i-seed-always-gets-cleaned-up-even-on-failure)    |
+| [Test my app in compact vs. cozy content density](#how-do-i-test-my-app-in-compact-vs-cozy-content-density)                                          |
+| [Capture the file behind an "Export to Spreadsheet" button](#how-do-i-capture-the-file-behind-an-export-to-spreadsheet-button)                       |
+| [Find out which tests aren't reliably passing](#how-do-i-find-out-which-tests-arent-reliably-passing)                                                |
 | [Test an app inside an iframe](#how-do-i-test-an-app-inside-an-iframe)                                                                               |
 | [Generate tests or Page Objects from a URL](#how-do-i-generate-tests-or-page-objects-from-a-url)                                                     |
 | [Report results to Jira](#how-do-i-report-results-to-jira)                                                                                           |
@@ -757,6 +761,89 @@ the browser page makes, and `Ui5ODataClient` calls go straight from Node. Use a 
 HTTP server to fake a backend for it instead.
 
 → [odata-client.md](odata-client.md)
+
+### How do I make sure test data I seed always gets cleaned up, even on failure?
+
+```ts
+import { Ui5ODataSeeder, fetchODataMetadata } from 'playwright-sapui5';
+
+const metadata = await fetchODataMetadata(`${SERVICE_URL}$metadata`);
+const seeder = await Ui5ODataSeeder.create(page.request, SERVICE_URL);
+
+const product = await seeder.seed(
+  'Products',
+  { ProductID: 'P1', Name: 'Widget' },
+  {
+    metadata,
+    entityType: 'Product',
+  },
+);
+// ... test uses the seeded product ...
+await seeder.cleanup(); // deletes everything seeded, most-recently-seeded first
+```
+
+Built on `Ui5ODataClient` - tracks what `seed()` creates and deletes all of it in `cleanup()`,
+LIFO, with the delete predicate auto-derived from `$metadata` when the entity's key is a single
+`Edm.String` property (the one case that's safe to build without guessing at OData's literal
+syntax for other EDM types). For anything else - a composite key, a non-string key - pass
+`keyPredicate: (created) => ...` yourself.
+
+→ [odata-seeder.md](odata-seeder.md)
+
+### How do I test my app in compact vs. cozy content density?
+
+```ts
+import { Ui5ContentDensity } from 'playwright-sapui5';
+
+await Ui5ContentDensity.set(page, 'compact');
+// ... assert whatever should look different in compact mode ...
+
+const current = await Ui5ContentDensity.get(page); // 'compact' | 'cozy' | null
+```
+
+`null` means neither the `sapUiSizeCompact` nor `sapUiSizeCozy` class is present on `<body>` -
+SAPUI5's own cozy default, not a failure to detect anything. `set()` takes effect immediately
+(it's a CSS class, no async re-render to wait for).
+
+→ [content-density.md](content-density.md)
+
+### How do I capture the file behind an "Export to Spreadsheet" button?
+
+```ts
+import { Ui5Export } from 'playwright-sapui5';
+
+const file = await Ui5Export.captureDownload(page, () =>
+  ui5(page).id('export-internalSplitBtn-textButton').click(),
+);
+expect(file.looksLikeXlsx).toBe(true); // a real ZIP-signature check, not a guess
+```
+
+Registers Playwright's `download` listener _before_ the triggering click, avoiding the well-known
+race where the event fires and is missed. Works with a `Frame` too (a real `sap.fe` app's own
+shell). To assert on the spreadsheet's actual contents, read `file.buffer` with a real XLSX
+library - that part's deliberately not reinvented here.
+
+→ [export.md](export.md)
+
+### How do I find out which tests aren't reliably passing?
+
+```ts
+// playwright.config.ts
+reporter: [
+  ['list'],
+  [
+    'playwright-sapui5/reporter/flaky-tests',
+    { historyFile: '.pw-sapui5/flaky-history.json' },
+  ],
+],
+```
+
+Reports any test that needed a retry to pass this run, and - because `historyFile` persists
+outcomes across runs - flags tests that aren't reliably passing over time even on a run with no
+failures of its own ("quarantine candidates"). A report, not an action: it doesn't skip anything
+itself.
+
+→ [flaky-tests.md](flaky-tests.md)
 
 ### How do I test an app inside an iframe?
 

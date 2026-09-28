@@ -849,6 +849,7 @@ interface ODataEntityTypeSchema {
   name: string;
   properties: ODataPropertySchema[];
   navigationPropertyNames: string[];
+  keyPropertyNames: string[]; // from <Key>, in declaration order
 }
 interface ODataPropertySchema {
   name: string;
@@ -882,6 +883,89 @@ class Ui5ODataClient {
 
 Direct OData V2 access for test setup/teardown, with SAP Gateway's CSRF handshake handled. See
 [docs/odata-client.md](odata-client.md).
+
+## `Ui5ODataSeeder`
+
+```ts
+class Ui5ODataSeeder {
+  static create(
+    request: APIRequestContext,
+    serviceUrl: string,
+    options?: { headers?: Record<string, string> },
+  ): Promise<Ui5ODataSeeder>;
+  static fromClient(client: Ui5ODataClient): Ui5ODataSeeder;
+
+  seed<T = unknown>(
+    entitySet: string,
+    data: Record<string, unknown>,
+    options?: {
+      entityType?: string;
+      metadata?: ODataMetadata;
+      keyPredicate?: (created: Record<string, unknown>) => string;
+    },
+  ): Promise<T>;
+
+  cleanup(): Promise<{ entitySet: string; keyPredicate: string; error: unknown }[]>;
+}
+```
+
+Seeds data via `Ui5ODataClient` and guarantees it's deleted afterward, most-recently-seeded first,
+even on test failure. See [docs/odata-seeder.md](odata-seeder.md).
+
+## `Ui5ContentDensity`
+
+```ts
+type Ui5ContentDensityValue = 'compact' | 'cozy';
+
+class Ui5ContentDensity {
+  static get(target: Page | Frame): Promise<Ui5ContentDensityValue | null>;
+  static set(target: Page | Frame, density: Ui5ContentDensityValue): Promise<void>;
+  static toggle(target: Page | Frame): Promise<Ui5ContentDensityValue>;
+}
+```
+
+Reads/forces the `sapUiSizeCompact`/`sapUiSizeCozy` `<body>` class SAPUI5 controls key their
+sizing off. See [docs/content-density.md](content-density.md).
+
+## `Ui5Export`
+
+```ts
+interface Ui5DownloadResult {
+  suggestedFilename: string;
+  buffer: Buffer;
+  byteLength: number;
+  looksLikeXlsx: boolean;
+}
+
+class Ui5Export {
+  static captureDownload(
+    target: Page | Frame,
+    trigger: () => Promise<void>,
+    options?: { timeout?: number },
+  ): Promise<Ui5DownloadResult>;
+}
+```
+
+Captures a Fiori "Export to Spreadsheet" download race-free and reads it back as bytes. See
+[docs/export.md](export.md).
+
+## Flaky test detection
+
+```ts
+function updateFlakyHistory(
+  history: FlakyHistory,
+  thisRun: FlakyTestThisRun[],
+  options: { historyLimit: number; runAt: string },
+): FlakyHistory;
+
+function findQuarantineCandidates(
+  history: FlakyHistory,
+  options: { quarantineThreshold: number; minRuns: number },
+): QuarantineCandidate[];
+```
+
+The pure aggregation behind `FlakyTestReporter` (also reachable as
+`playwright-sapui5/reporter/flaky-tests`). See [docs/flaky-tests.md](flaky-tests.md).
 
 ## Types
 

@@ -47,6 +47,24 @@ export { Ui5Navigation } from './core/Ui5Navigation';
 export { captureControlTree, formatControlTree, summarizeByType } from './core/diagnostics';
 export { maskDynamicUi5Content } from './core/visualMask';
 export { Ui5ODataClient } from './core/Ui5ODataClient';
+export { Ui5ODataSeeder } from './core/Ui5ODataSeeder';
+export type { Ui5ODataSeedOptions, Ui5ODataCleanupFailure } from './core/Ui5ODataSeeder';
+export { Ui5ContentDensity } from './core/Ui5ContentDensity';
+export type { Ui5ContentDensityValue } from './core/Ui5ContentDensity';
+export { Ui5Export } from './core/Ui5Export';
+export type { Ui5DownloadResult } from './core/Ui5Export';
+// Flaky test detection - the reporter itself is also reachable as
+// 'playwright-sapui5/reporter/flaky-tests'.
+export { updateFlakyHistory, findQuarantineCandidates } from './integrations/FlakyTestReporter';
+export type {
+  FlakyTestReporterOptions,
+  FlakyOutcome,
+  FlakyTestThisRun,
+  FlakyHistoryRun,
+  FlakyHistoryEntry,
+  FlakyHistory,
+  QuarantineCandidate,
+} from './integrations/FlakyTestReporter';
 // Jira integration - the reporter itself is also reachable as 'playwright-sapui5/reporter/jira',
 // which is the path you put in playwright.config.ts.
 export { JiraClient, jiraOptionsFromEnv, toAtlassianDocument } from './integrations/jiraClient';

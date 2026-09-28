@@ -77,6 +77,10 @@
       "types": "./dist/integrations/ApiCatalogReporter.d.ts",
       "default": "./dist/integrations/ApiCatalogReporter.js"
     },
+    "./reporter/flaky-tests": {
+      "types": "./dist/integrations/FlakyTestReporter.d.ts",
+      "default": "./dist/integrations/FlakyTestReporter.js"
+    },
     "./package.json": "./package.json"
   }
 }
