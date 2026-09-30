@@ -42,8 +42,10 @@ npx playwright install chromium
 This lets you control exactly which Playwright version you're on.
 
 If you don't have a project yet, `pw-sapui5 init` scaffolds a whole ready-to-run one for you in
-one command - config, example test, editor setup - see [docs/init.md](init.md). The rest of this
-guide works the same either way; skip to [step 3](#3-your-first-test) once you have a project.
+one command - config, example test, editor setup, VS Code snippets, and a CI pipeline (GitHub
+Actions by default; `--ci azure`/`--ci gitlab` for those instead) - see [docs/init.md](init.md).
+The rest of this guide works the same either way; skip to [step 3](#3-your-first-test) once you
+have a project.
 
 ## 3. Your first test
 
@@ -157,6 +159,8 @@ more patterns, and [docs/auto-wait.md](auto-wait.md) for exactly what "settle" m
 - [docs/how-to.md](how-to.md) - **already know what you're trying to do?** Every feature below,
   indexed by task ("How do I read rows from a table?", "How do I mock an OData backend?") with one
   runnable snippet each - skip straight there instead of reading linearly.
+- [docs/cheat-sheet.md](cheat-sheet.md) - **already know the framework?** One page, every class's
+  most-used calls, no explanations - for a quick syntax reminder or a teammate's first day.
 - [docs/core-concepts.md](core-concepts.md) - _why_ SAPUI5 apps need this, and how the framework
   talks to the SAPUI5 control tree under the hood. Worth reading once - it makes everything else
   make more sense.
@@ -223,6 +227,12 @@ more patterns, and [docs/auto-wait.md](auto-wait.md) for exactly what "settle" m
 - [docs/split-app.md](split-app.md) - `Ui5SplitApp`, for the classic master/detail shell.
 - [docs/form-inputs.md](form-inputs.md) - `Ui5Select` and `Ui5DatePicker`, for dropdowns whose
   options aren't in the DOM until opened, and dates without locale/timezone traps.
+- [docs/multi-input.md](multi-input.md) - `Ui5MultiInput`, for adding/reading/removing tokens on
+  `sap.m.MultiInput`/`MultiComboBox`, including a `key` that never touches the DOM.
+- [docs/wizard.md](wizard.md) - `Ui5Wizard`, for step navigation on `sap.m.Wizard`'s guided
+  multi-step flows.
+- [docs/tree.md](tree.md) - `Ui5Tree`, for reading and expanding/collapsing `sap.m.Tree`'s
+  hierarchical nodes.
 - [docs/messages.md](messages.md) - `Ui5MessageToast` and `Ui5Messages`, for toasts that vanish
   after three seconds and for validation/backend errors.
 - [docs/demo-apps.md](demo-apps.md) - this framework used against four real, free, complete SAPUI5

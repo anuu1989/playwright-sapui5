@@ -33,6 +33,7 @@ below for what to edit next).
 | ---------------------- | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
 | `-d, --dir <path>`     | `.` (current directory) | Where to scaffold into                                                                                                                          |
 | `-b, --base-url <url>` | a placeholder URL       | Baked into the generated `playwright.config.ts` as the default `BASE_URL` - see [docs/multi-environment-config.md](multi-environment-config.md) |
+| `--ci <provider>`      | `github`                | Which CI pipeline file to scaffold: `github`, `azure`, `gitlab`, or `none` to skip it entirely                                                  |
 | `-f, --force`          | off                     | Overwrite files that already exist                                                                                                              |
 
 **`init` never overwrites an existing file unless you pass `--force`.** Run it in a directory
@@ -47,10 +48,36 @@ tsconfig.json            Minimal TypeScript config
 .env.example             Copy to .env to set your own BASE_URL
 pages/ExamplePage.ts      Starter Page Object - extend Ui5Page, add your own locators
 tests/example.spec.ts     Starter test using ExamplePage
-.vscode/                 Recommended extensions, format-on-save, and a debug launch config
+.vscode/                 Recommended extensions, format-on-save, a debug launch config, and
+                          playwright-sapui5.code-snippets (see below)
+.github/workflows/       A ready-to-run CI pipeline (or azure-pipelines.yml / .gitlab-ci.yml -
+playwright.yml           see --ci above; --ci none skips this)
 .gitignore                Created, or merged into your existing one
 package.json              Created only if one doesn't already exist
 ```
+
+### Editor snippets
+
+`.vscode/playwright-sapui5.code-snippets` ships five snippets for this framework's own most
+common patterns - type the prefix in any `.ts` file and hit `Tab`:
+
+| Prefix        | Expands to                                                 |
+| ------------- | ---------------------------------------------------------- |
+| `ui5page`     | A `Ui5Page` subclass with an `open()` and a locator getter |
+| `ui5test`     | A `test(...)` block using a Page Object                    |
+| `ui5locator`  | A `ui5(page)....` locator, with a choice of strategy       |
+| `ui5fallback` | A self-healing locator with `.fallback(...)`               |
+| `ui5matcher`  | A `toHaveUi5Property` assertion                            |
+
+### CI pipeline
+
+By default `init` also scaffolds a working CI pipeline (`--ci github`, the default, writes
+`.github/workflows/playwright.yml`; `--ci azure`/`--ci gitlab` write the equivalent for those
+systems instead; `--ci none` skips this). Every variant does the same three things: install
+dependencies, install the Chromium browser Playwright needs, run `npm test`, then publish the
+HTML report as a build artifact - point it at a real environment by setting `BASE_URL` as that
+system's own secret/variable (each generated file has a commented-out example showing exactly
+where).
 
 ## After scaffolding
 

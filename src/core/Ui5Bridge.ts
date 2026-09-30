@@ -16,14 +16,17 @@ import type {
   Ui5MessageInfo,
   Ui5MessageToastRecord,
   Ui5ModelPropertyResult,
+  Ui5MultiInputInfo,
   Ui5ObjectPageInfo,
   Ui5PerformanceMetrics,
   Ui5PropertyResult,
   Ui5SelectInfo,
   Ui5SmartTableInfo,
   Ui5SplitAppInfo,
+  Ui5TreeInfo,
   Ui5VariantInfo,
   Ui5TextResult,
+  Ui5WizardInfo,
 } from './types';
 
 /**
@@ -603,5 +606,44 @@ export class Ui5Bridge {
       id,
       key,
     });
+  }
+
+  /** A `sap.m.Wizard`'s steps and current position. Used by `Ui5Wizard`. */
+  static async getWizardInfo(target: Ui5Target, id: string): Promise<Ui5WizardInfo> {
+    await this.ensure(target);
+    return target.evaluate(({ id }) => (window as any).__pwSapUi5__.getWizardInfo(id), { id });
+  }
+
+  /** A `sap.m.MultiInput`'s current tokens. Used by `Ui5MultiInput`. */
+  static async getMultiInputInfo(target: Ui5Target, id: string): Promise<Ui5MultiInputInfo> {
+    await this.ensure(target);
+    return target.evaluate(({ id }) => (window as any).__pwSapUi5__.getMultiInputInfo(id), { id });
+  }
+
+  /** A `sap.m.Tree`'s currently rendered items, in flat order. Used by `Ui5Tree`. */
+  static async getTreeInfo(target: Ui5Target, id: string): Promise<Ui5TreeInfo> {
+    await this.ensure(target);
+    return target.evaluate(({ id }) => (window as any).__pwSapUi5__.getTreeInfo(id), { id });
+  }
+
+  /** Expands a `sap.m.Tree` to a given depth via the control's own `expandToLevel()`. Used by
+   * `Ui5Tree.expandToLevel()`. */
+  static async expandTreeToLevel(
+    target: Ui5Target,
+    id: string,
+    level: number,
+  ): Promise<Ui5BridgeActionResult> {
+    await this.ensure(target);
+    return target.evaluate(
+      ({ id, level }) => (window as any).__pwSapUi5__.expandTreeToLevel(id, level),
+      { id, level },
+    );
+  }
+
+  /** Collapses every node of a `sap.m.Tree` via the control's own `collapseAll()`. Used by
+   * `Ui5Tree.collapseAll()`. */
+  static async collapseTreeAll(target: Ui5Target, id: string): Promise<Ui5BridgeActionResult> {
+    await this.ensure(target);
+    return target.evaluate(({ id }) => (window as any).__pwSapUi5__.collapseTreeAll(id), { id });
   }
 }

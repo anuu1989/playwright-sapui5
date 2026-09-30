@@ -58,6 +58,8 @@ import { test, expect, ui5 } from 'playwright-sapui5';
 | [Capture the file behind an "Export to Spreadsheet" button](#how-do-i-capture-the-file-behind-an-export-to-spreadsheet-button)                       |
 | [Find out which tests aren't reliably passing](#how-do-i-find-out-which-tests-arent-reliably-passing)                                                |
 | [Test an app inside an iframe](#how-do-i-test-an-app-inside-an-iframe)                                                                               |
+| [Get a whole new project running in CI, not just locally](#how-do-i-get-a-whole-new-project-running-in-ci-not-just-locally)                          |
+| [Get the syntax back without re-reading the full docs](#how-do-i-get-the-syntax-back-without-re-reading-the-full-docs)                               |
 | [Generate tests or Page Objects from a URL](#how-do-i-generate-tests-or-page-objects-from-a-url)                                                     |
 | [Report results to Jira](#how-do-i-report-results-to-jira)                                                                                           |
 | [Check that an environment is even healthy first](#how-do-i-check-that-an-environment-is-even-healthy-first)                                         |
@@ -493,6 +495,61 @@ specifically want to test what typing into the field does, including bad input.
 
 → [form-inputs.md](form-inputs.md)
 
+### How do I add or remove tokens on a multi-value field?
+
+A token's `key` never touches the DOM - only its visible text does. `Ui5MultiInput` drives the
+real suggestion popup and reads the key straight off the control:
+
+```ts
+import { Ui5MultiInput } from 'playwright-sapui5';
+
+const field = ui5(page).id('recipientsInput');
+await Ui5MultiInput.addByText(page, field, 'Astro Laptop 1516');
+
+expect(await Ui5MultiInput.tokens(page, field)).toContainEqual(
+  expect.objectContaining({ key: 'HT-1251' }),
+);
+
+await Ui5MultiInput.removeByText(page, field, 'Astro Laptop 1516');
+```
+
+→ [multi-input.md](multi-input.md)
+
+### How do I drive a multi-step wizard?
+
+`Ui5Wizard` reads each step's title/validation state and advances by clicking that step's own
+"Next" button (SAPUI5 renders one per step, not a single shared one):
+
+```ts
+import { Ui5Wizard } from 'playwright-sapui5';
+
+const wizard = ui5(page).controlType('sap.m.Wizard');
+expect(await Ui5Wizard.currentStepIndex(page, wizard)).toBe(0);
+
+await Ui5Wizard.next(page, wizard);
+expect(await Ui5Wizard.currentStepIndex(page, wizard)).toBe(1);
+```
+
+→ [wizard.md](wizard.md)
+
+### How do I read or expand a tree?
+
+A collapsed node's children don't exist in the DOM until it's expanded - not just hidden. `Ui5Tree`
+reads whatever's currently rendered, and expands by clicking each node's own toggle:
+
+```ts
+import { Ui5Tree } from 'playwright-sapui5';
+
+const tree = ui5(page).controlType('sap.m.Tree');
+await Ui5Tree.expand(page, tree, 'Node1');
+
+expect(await Ui5Tree.items(page, tree)).toContainEqual(
+  expect.objectContaining({ title: 'Node1-1', level: 1 }),
+);
+```
+
+→ [tree.md](tree.md)
+
 ## Data, text and messages
 
 ### How do I assert text that survives translation?
@@ -863,6 +920,30 @@ await ui5(appFrame).text('Laptops', { controlType: 'sap.m.StandardListItem' }).c
 → [cross-frame.md](cross-frame.md)
 
 ## Tooling
+
+### How do I get a whole new project running in CI, not just locally?
+
+`pw-sapui5 init` scaffolds a CI pipeline by default, alongside everything else:
+
+```bash
+npx pw-sapui5 init --base-url https://your-app.example.com/       # GitHub Actions (the default)
+npx pw-sapui5 init --base-url https://your-app.example.com/ --ci azure
+npx pw-sapui5 init --base-url https://your-app.example.com/ --ci gitlab
+```
+
+Every variant installs dependencies, installs the Chromium browser, runs `npm test`, and publishes
+the HTML report as a build artifact - set `BASE_URL` as that system's own secret/variable to point
+it at a real environment (each file has a commented-out example of exactly where). `--ci none`
+skips this if your team already has its own pipeline set up.
+
+It also drops `.vscode/playwright-sapui5.code-snippets` into the project - type `ui5page`,
+`ui5test`, `ui5locator`, `ui5fallback`, or `ui5matcher` in any `.ts` file and hit `Tab`.
+
+→ [init.md](init.md)
+
+### How do I get the syntax back without re-reading the full docs?
+
+[cheat-sheet.md](cheat-sheet.md) - one page, every class's most-used calls, no explanations.
 
 ### How do I generate tests or Page Objects from a URL?
 

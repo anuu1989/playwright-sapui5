@@ -484,6 +484,73 @@ class Ui5DatePicker {
 
 See [docs/form-inputs.md](form-inputs.md).
 
+## `Ui5MultiInput`
+
+```ts
+class Ui5MultiInput {
+  static async tokens(target: Ui5Target, multiInput: Ui5Locator | Locator): Promise<Ui5TokenInfo[]>;
+  static async addByText(
+    target: Ui5Target,
+    multiInput: Ui5Locator | Locator,
+    text: string,
+    options?: { exact?: boolean; timeout?: number },
+  ): Promise<void>;
+  static async removeByText(
+    target: Ui5Target,
+    multiInput: Ui5Locator | Locator,
+    text: string,
+  ): Promise<void>;
+  static async removeAll(target: Ui5Target, multiInput: Ui5Locator | Locator): Promise<void>;
+}
+```
+
+See [docs/multi-input.md](multi-input.md).
+
+## `Ui5Wizard`
+
+```ts
+class Ui5Wizard {
+  static async steps(target: Ui5Target, wizard: Ui5Locator | Locator): Promise<Ui5WizardStepInfo[]>;
+  static async currentStepId(
+    target: Ui5Target,
+    wizard: Ui5Locator | Locator,
+  ): Promise<string | undefined>;
+  static async currentStepIndex(
+    target: Ui5Target,
+    wizard: Ui5Locator | Locator,
+  ): Promise<number | undefined>;
+  static async progress(
+    target: Ui5Target,
+    wizard: Ui5Locator | Locator,
+  ): Promise<number | undefined>;
+  static async next(
+    target: Ui5Target,
+    wizard: Ui5Locator | Locator,
+    options?: Parameters<Locator['click']>[0],
+  ): Promise<void>;
+}
+```
+
+See [docs/wizard.md](wizard.md).
+
+## `Ui5Tree`
+
+```ts
+class Ui5Tree {
+  static async items(target: Ui5Target, tree: Ui5Locator | Locator): Promise<Ui5TreeItemInfo[]>;
+  static async expand(target: Ui5Target, tree: Ui5Locator | Locator, text: string): Promise<void>;
+  static async collapse(target: Ui5Target, tree: Ui5Locator | Locator, text: string): Promise<void>;
+  static async expandToLevel(
+    target: Ui5Target,
+    tree: Ui5Locator | Locator,
+    level: number,
+  ): Promise<void>;
+  static async collapseAll(target: Ui5Target, tree: Ui5Locator | Locator): Promise<void>;
+}
+```
+
+See [docs/tree.md](tree.md).
+
 ## `Ui5VariantManagement`
 
 ```ts
@@ -1049,6 +1116,27 @@ interface Ui5ObjectPageSection {
   id: string;
   title: string | undefined;
   subSections: { id: string; title: string | undefined }[];
+}
+
+interface Ui5WizardStepInfo {
+  id: string;
+  title: string | undefined;
+  validated: boolean;
+  optional: boolean;
+}
+
+interface Ui5TokenInfo {
+  id: string;
+  key: string | undefined;
+  text: string | undefined;
+}
+
+interface Ui5TreeItemInfo {
+  id: string;
+  title: string | undefined;
+  level: number; // 0-based
+  expanded: boolean | undefined;
+  leaf: boolean;
 }
 
 type Ui5Target = Page | Frame;

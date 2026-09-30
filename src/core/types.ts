@@ -376,3 +376,60 @@ export interface Ui5ManifestInfo {
   routes: Ui5RouteInfo[];
   dataSources: string[];
 }
+
+/** One step of a `sap.m.Wizard` (a `sap.m.WizardStep`) - `validated` gates whether the wizard
+ * will let the user move past it, `optional` whether it can be skipped entirely. See
+ * `src/core/Ui5Wizard.ts`. */
+export interface Ui5WizardStepInfo {
+  id: string;
+  title: string | undefined;
+  validated: boolean;
+  optional: boolean;
+}
+
+/** A `sap.m.Wizard`'s current state (`Ui5Bridge.getWizardInfo`). `currentStepId` is read off the
+ * control's own `getCurrentStep()` (verified to return the step control itself, not just an id,
+ * on a real `sap.m.Wizard` - this unwraps that); `progress` is the wizard's own 1-based
+ * `getProgress()` value (the furthest step reached, which in a non-branching wizard is also the
+ * step currently showing). See `src/core/Ui5Wizard.ts`. */
+export interface Ui5WizardInfo {
+  found: boolean;
+  currentStepId: string | undefined;
+  progress: number | undefined;
+  steps: Ui5WizardStepInfo[];
+}
+
+/** One token of a `sap.m.MultiInput`/`sap.m.MultiComboBox` (a `sap.m.Token`) - `key` is what the
+ * app binds on, `text` is what's rendered. See `src/core/Ui5MultiInput.ts`. */
+export interface Ui5TokenInfo {
+  id: string;
+  key: string | undefined;
+  text: string | undefined;
+}
+
+/** A `sap.m.MultiInput`'s current tokens (`Ui5Bridge.getMultiInputInfo`). See
+ * `src/core/Ui5MultiInput.ts`. */
+export interface Ui5MultiInputInfo {
+  found: boolean;
+  tokens: Ui5TokenInfo[];
+}
+
+/** One rendered node of a `sap.m.Tree` (a `sap.m.StandardTreeItem`/`sap.m.CustomTreeItem`), in
+ * the tree's own flat rendered order - collapsed descendants simply don't appear until their
+ * parent is expanded, the same as what's actually on screen. `level` is 0-based (a top-level
+ * node is level 0); `expanded`/`leaf` are `undefined`/`false` respectively for controls that
+ * don't report them (verified: a real `sap.m.Tree` always does). See `src/core/Ui5Tree.ts`. */
+export interface Ui5TreeItemInfo {
+  id: string;
+  title: string | undefined;
+  level: number;
+  expanded: boolean | undefined;
+  leaf: boolean;
+}
+
+/** A `sap.m.Tree`'s currently rendered items (`Ui5Bridge.getTreeInfo`). See
+ * `src/core/Ui5Tree.ts`. */
+export interface Ui5TreeInfo {
+  found: boolean;
+  items: Ui5TreeItemInfo[];
+}

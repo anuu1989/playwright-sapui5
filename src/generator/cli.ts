@@ -4,7 +4,7 @@
 // `pw-sapui5` (or `npx pw-sapui5`) works without anyone having to type `node` themselves. It has
 // to be the literal first line of the file, before even a comment, or it won't be recognized.
 import { chromium } from '@playwright/test';
-import { Command } from 'commander';
+import { Command, Option } from 'commander';
 import { writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { Ui5Bridge } from '../core/Ui5Bridge';
@@ -12,7 +12,7 @@ import { waitForUi5, waitForUi5Core } from '../core/waits';
 import { generatePageObjectSource } from './generatePageObjectSource';
 import { analyzeUi5App } from './analyzeApp';
 import { generateTestSource } from './generateTestSource';
-import { runInit } from './initCommand';
+import { runInit, type CiProvider } from './initCommand';
 import { runDoctor } from './doctorCommand';
 
 /**
@@ -164,7 +164,7 @@ program
 program
   .command('init')
   .description(
-    'Scaffold a ready-to-run playwright-sapui5 project (config, example test, editor setup)',
+    'Scaffold a ready-to-run playwright-sapui5 project (config, example test, editor setup, CI pipeline)',
   )
   .option('-d, --dir <path>', 'Target directory', '.')
   .option(
@@ -173,14 +173,19 @@ program
     'https://your-app.example.com/',
   )
   .option('-f, --force', 'Overwrite files that already exist', false)
-  .action((opts: { dir: string; baseUrl: string; force: boolean }) => {
+  .addOption(
+    new Option('--ci <provider>', 'CI pipeline file to scaffold')
+      .choices(['github', 'azure', 'gitlab', 'none'])
+      .default('github'),
+  )
+  .action((opts: { dir: string; baseUrl: string; force: boolean; ci: CiProvider }) => {
     // `resolve(opts.dir)` turns whatever the user typed (`.`, `../my-tests`, an absolute path,
     // ...) into a full, absolute path - both so the console output below is unambiguous about
     // exactly where files were written, and so `runInit()` itself never has to worry about
     // relative-path edge cases.
     const dir = resolve(opts.dir);
     console.log(`Scaffolding a playwright-sapui5 project in ${dir} ...`);
-    const result = runInit({ dir, baseUrl: opts.baseUrl, force: opts.force });
+    const result = runInit({ dir, baseUrl: opts.baseUrl, force: opts.force, ci: opts.ci });
 
     // `runInit()` returns a plain `{ created, skipped }` report rather than printing anything
     // itself - that's what keeps `initCommand.ts` testable without needing to capture console
@@ -204,6 +209,16 @@ program
     console.log('or generate a starting Page Object from it directly:');
     console.log(
       '  npx pw-sapui5 generate --url <your-app-url> --output pages/HomePage.ts --class-name HomePage',
+    );
+    if (opts.ci !== 'none') {
+      console.log('');
+      console.log(
+        `A ${opts.ci} CI pipeline was scaffolded too - push it as-is, or point it at your own environment first (see the BASE_URL comment inside it). Pass --ci none to skip this next time, or --ci <azure|gitlab> for a different provider.`,
+      );
+    }
+    console.log('');
+    console.log(
+      'Reopen this folder in VS Code to get playwright-sapui5.code-snippets - type ui5page, ui5test, ui5locator, ui5fallback, or ui5matcher and hit Tab for a starter snippet.',
     );
   });
 

@@ -8,6 +8,11 @@ import { dirname, join } from 'node:path';
  * strings holding the content of each file it can create.
  */
 
+/** Which CI system to scaffold a pipeline file for - see the three `*Source()` functions below.
+ * `'none'` is an explicit opt-out, for a team whose CI isn't any of the other three (or who'd
+ * rather set it up by hand). */
+export type CiProvider = 'github' | 'azure' | 'gitlab' | 'none';
+
 export interface InitOptions {
   /** Target directory to scaffold into. */
   dir: string;
@@ -15,6 +20,9 @@ export interface InitOptions {
   baseUrl: string;
   /** Overwrite files that already exist, instead of skipping them. */
   force: boolean;
+  /** Which CI pipeline file to scaffold. Defaults to `'github'` - the same "batteries included,
+   * inert if unused" reasoning `init` already applies to `.vscode/`. */
+  ci?: CiProvider;
 }
 
 export interface InitResult {
@@ -148,6 +156,207 @@ const VSCODE_LAUNCH_SOURCE = `{
 }
 `;
 
+// A handful of ready-to-use snippets for the framework's own most common patterns - `Tab`-expand
+// `ui5page`/`ui5test`/`ui5locator`/`ui5fallback`/`ui5matcher` in any `.ts` file. These exist for
+// the same reason the framework has a Page Object generator at all: a tester new to this
+// framework shouldn't have to hold its exact API shapes in their head, or go copy-paste them out
+// of docs, just to write the next ordinary test. VS Code's snippet placeholder syntax
+// (`${1:default text}`, `$0` for where the cursor lands last) is unrelated to - and not evaluated
+// by - the JavaScript template literal this whole constant is written as; it's just text VS Code
+// itself interprets once the file lands in `.vscode/`. A `.code-snippets` file is strict JSON
+// (no trailing commas, no comments), unlike most of VS Code's own JSONC config files - verified
+// by actually running `pw-sapui5 init` and parsing the result with `JSON.parse`.
+const VSCODE_SNIPPETS_SOURCE = `{
+  "playwright-sapui5: Page Object": {
+    "scope": "typescript",
+    "prefix": "ui5page",
+    "body": [
+      "import type { Page } from '@playwright/test';",
+      "import { Ui5Page, ui5 } from 'playwright-sapui5';",
+      "",
+      "export class \${1:MyPage} extends Ui5Page {",
+      "  constructor(page: Page) {",
+      "    super(page);",
+      "  }",
+      "",
+      "  async open(): Promise<void> {",
+      "    await this.goto('\${2:}');",
+      "  }",
+      "",
+      "  get \${3:someControl}() {",
+      "    return ui5(this.page).\${4:controlType('sap.m.Button')};",
+      "  }",
+      "}",
+      "$0"
+    ]
+  },
+  "playwright-sapui5: test": {
+    "scope": "typescript",
+    "prefix": "ui5test",
+    "body": [
+      "import { test, expect } from 'playwright-sapui5';",
+      "import { \${1:MyPage} } from '../pages/\${1:MyPage}';",
+      "",
+      "test('\${2:does the thing}', async ({ page }) => {",
+      "  const app = new \${1:MyPage}(page);",
+      "  await app.open();",
+      "",
+      "  $0",
+      "});"
+    ]
+  },
+  "playwright-sapui5: ui5() locator": {
+    "scope": "typescript",
+    "prefix": "ui5locator",
+    "body": [
+      "ui5(\${1:page}).\${2|id('$3'),controlType('sap.m.$3'),text('$3'),bindingPath('$3')|}$0"
+    ]
+  },
+  "playwright-sapui5: self-healing locator with fallback": {
+    "scope": "typescript",
+    "prefix": "ui5fallback",
+    "body": [
+      "ui5(\${1:page})",
+      "  .\${2:id('$3')}",
+      "  .fallback({ by: '\${4:text}', \${5:text: '$3'} }, { label: '\${6:$3}' })$0"
+    ]
+  },
+  "playwright-sapui5: custom expect matcher": {
+    "scope": "typescript",
+    "prefix": "ui5matcher",
+    "body": [
+      "await expect(await \${1:locator}.resolve()).toHaveUi5Property('\${2:text}', \${3:'expected value'});$0"
+    ]
+  }
+}
+`;
+
+/**
+ * Builds a GitHub Actions workflow that installs dependencies, installs the Chromium browser
+ * Playwright needs, runs the suite, and uploads the HTML report as a build artifact on every
+ * run (not just failures - a green run's report is still useful for a quick "what actually ran"
+ * check). Mirrors the shape this framework's *own* CI uses to run its example suite (see
+ * `.github/workflows/ci.yml` in this repo) minus the steps that are specific to developing the
+ * library itself (linting/type-checking/building the library, the `npm pack` scaffolding smoke
+ * test) - a consumer project has none of that, just tests to run.
+ */
+function githubActionsWorkflowSource(): string {
+  return `name: Playwright tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run tests
+        run: npm test
+        env:
+          CI: true
+          # Set repo secrets/variables and reference them here to point CI at a different
+          # environment than your local .env - see docs/multi-environment-config.md.
+          # BASE_URL: \${{ vars.BASE_URL }}
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14
+`;
+}
+
+/** Builds an Azure Pipelines YAML file - the CI system many SAP-shop enterprise teams already
+ * standardize on. Same three real steps as the GitHub Actions template above (install deps,
+ * install the browser, run tests), in Azure Pipelines' own task syntax, plus publishing the HTML
+ * report as a named pipeline artifact so it's downloadable from the run's own Artifacts tab. */
+function azurePipelinesSource(): string {
+  return `trigger:
+  branches:
+    include: [main]
+
+pr:
+  branches:
+    include: ['*']
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+  - task: NodeTool@0
+    inputs:
+      versionSpec: '20.x'
+    displayName: 'Use Node.js 20'
+
+  - script: npm ci
+    displayName: 'Install dependencies'
+
+  - script: npx playwright install --with-deps chromium
+    displayName: 'Install Playwright browsers'
+
+  - script: npm test
+    displayName: 'Run tests'
+    env:
+      CI: true
+      # Set a pipeline variable and reference it here to point CI at a different environment
+      # than your local .env - see docs/multi-environment-config.md.
+      # BASE_URL: $(BASE_URL)
+
+  - task: PublishPipelineArtifact@1
+    condition: always()
+    inputs:
+      targetPath: 'playwright-report'
+      artifact: 'playwright-report'
+    displayName: 'Publish Playwright report'
+`;
+}
+
+/** Builds a GitLab CI file - `image` pins the same Node major version as every other template
+ * here, and the `artifacts` block is GitLab's equivalent of the "always upload the report" step
+ * the GitHub Actions/Azure templates both have, kept even on failure via `when: always`. */
+function gitlabCiSource(): string {
+  return `image: node:20
+
+stages:
+  - test
+
+test:
+  stage: test
+  script:
+    - npm ci
+    - npx playwright install --with-deps chromium
+    - npm test
+  variables:
+    CI: "true"
+    # Set a CI/CD variable in GitLab's project settings and reference it here to point CI at a
+    # different environment than your local .env - see docs/multi-environment-config.md.
+    # BASE_URL: $BASE_URL
+  artifacts:
+    when: always
+    paths:
+      - playwright-report/
+    expire_in: 14 days
+`;
+}
+
 // Used by `mergeGitignore()` below - a plain array (not a single template string like the files
 // above) because, unlike the others, a `.gitignore` might already exist in the target directory
 // and need individual lines merged into it rather than being written wholesale.
@@ -257,9 +466,9 @@ function mergeGitignore(filePath: string, force: boolean, result: InitResult): v
  */
 export function runInit(options: InitOptions): InitResult {
   const result: InitResult = { created: [], skipped: [] };
-  // Destructuring `options` into three local variables here is purely for brevity in the calls
-  // below - `options.dir`/`options.baseUrl`/`options.force` would work identically.
-  const { dir, baseUrl, force } = options;
+  // Destructuring `options` into local variables here is purely for brevity in the calls below -
+  // `options.dir`/`options.baseUrl`/`options.force`/`options.ci` would work identically.
+  const { dir, baseUrl, force, ci = 'github' } = options;
 
   writeFileIfAbsent(
     join(dir, 'playwright.config.ts'),
@@ -279,7 +488,28 @@ export function runInit(options: InitOptions): InitResult {
   );
   writeFileIfAbsent(join(dir, '.vscode', 'settings.json'), VSCODE_SETTINGS_SOURCE, force, result);
   writeFileIfAbsent(join(dir, '.vscode', 'launch.json'), VSCODE_LAUNCH_SOURCE, force, result);
+  writeFileIfAbsent(
+    join(dir, '.vscode', 'playwright-sapui5.code-snippets'),
+    VSCODE_SNIPPETS_SOURCE,
+    force,
+    result,
+  );
   mergeGitignore(join(dir, '.gitignore'), force, result);
+
+  // CI scaffolding - each provider writes to its own conventional path, so unlike every other
+  // file above there's no single fixed target; `'none'` (an explicit opt-out) writes nothing.
+  if (ci === 'github') {
+    writeFileIfAbsent(
+      join(dir, '.github', 'workflows', 'playwright.yml'),
+      githubActionsWorkflowSource(),
+      force,
+      result,
+    );
+  } else if (ci === 'azure') {
+    writeFileIfAbsent(join(dir, 'azure-pipelines.yml'), azurePipelinesSource(), force, result);
+  } else if (ci === 'gitlab') {
+    writeFileIfAbsent(join(dir, '.gitlab-ci.yml'), gitlabCiSource(), force, result);
+  }
 
   // `package.json` is the one file with genuinely different logic from every other line above:
   // it's only ever created if the target directory doesn't have one at all - `init` never offers

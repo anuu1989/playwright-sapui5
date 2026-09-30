@@ -44,6 +44,9 @@ export { Ui5SplitApp } from './core/Ui5SplitApp';
 export { Ui5MdcTable } from './core/Ui5MdcTable';
 export { Ui5Performance } from './core/Ui5Performance';
 export { Ui5Navigation } from './core/Ui5Navigation';
+export { Ui5Wizard } from './core/Ui5Wizard';
+export { Ui5MultiInput } from './core/Ui5MultiInput';
+export { Ui5Tree } from './core/Ui5Tree';
 export { captureControlTree, formatControlTree, summarizeByType } from './core/diagnostics';
 export { maskDynamicUi5Content } from './core/visualMask';
 export { Ui5ODataClient } from './core/Ui5ODataClient';
@@ -137,6 +140,12 @@ export type {
   Ui5MdcTableInfo,
   Ui5PerformanceMetrics,
   Ui5BootstrapTimings,
+  Ui5WizardStepInfo,
+  Ui5WizardInfo,
+  Ui5TokenInfo,
+  Ui5MultiInputInfo,
+  Ui5TreeItemInfo,
+  Ui5TreeInfo,
 } from './core/types';
 export type {
   ODataVersion,

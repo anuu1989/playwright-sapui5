@@ -1332,6 +1332,153 @@ export function bridgeScript(): void {
   }
 
   /**
+   * Reads a `sap.m.Wizard`'s steps and current position. Backs `Ui5Wizard` - see docs/wizard.md.
+   *
+   * `getCurrentStep()` is verified (against a real `sap.m.Wizard` SDK sample) to return the
+   * *step control itself*, not just its id the way `sap.m.SplitApp`'s `getCurrentMasterPage()`
+   * does - `unwrapId` below handles both shapes so this doesn't depend on that staying true
+   * across versions. `getProgress()` is the wizard's own 1-based "furthest step reached" number,
+   * which only differs from "the step currently showing" once branching (`enableBranching`)
+   * lets a user jump backward without losing progress on steps ahead.
+   */
+  function getWizardInfo(id: string) {
+    const el = findByExactId(id);
+    if (!el || typeof el.getSteps !== 'function') {
+      return { found: false, currentStepId: undefined, progress: undefined, steps: [] };
+    }
+    function unwrapId(value: any): string | undefined {
+      if (typeof value === 'string') return value;
+      return value && typeof value.getId === 'function' ? value.getId() : undefined;
+    }
+    let currentStepId: string | undefined;
+    try {
+      currentStepId =
+        typeof el.getCurrentStep === 'function' ? unwrapId(el.getCurrentStep()) : undefined;
+    } catch {
+      currentStepId = undefined;
+    }
+    let progress: number | undefined;
+    try {
+      progress = typeof el.getProgress === 'function' ? el.getProgress() : undefined;
+    } catch {
+      progress = undefined;
+    }
+    let steps: any[] = [];
+    try {
+      steps = el.getSteps().map((step: any) => ({
+        id: typeof step.getId === 'function' ? step.getId() : undefined,
+        title: typeof step.getTitle === 'function' ? step.getTitle() : undefined,
+        validated: typeof step.getValidated === 'function' ? !!step.getValidated() : true,
+        optional: typeof step.getOptional === 'function' ? !!step.getOptional() : false,
+      }));
+    } catch {
+      steps = [];
+    }
+    return { found: true, currentStepId, progress, steps };
+  }
+
+  /**
+   * Reads a `sap.m.MultiInput`'s (or `sap.m.MultiComboBox`'s) current tokens. Backs
+   * `Ui5MultiInput` - see docs/multi-input.md.
+   *
+   * A token's `key` is real bound data (verified: `sap.m.Token#getKey()` on a real
+   * `sap.m.MultiInput` SDK sample returns the app's actual key, e.g. `'HT-1251'`, not its visible
+   * label) - reading it this way is the only way to get it, since nothing about it is in the DOM.
+   */
+  function getMultiInputInfo(id: string) {
+    const el = findByExactId(id);
+    if (!el || typeof el.getTokens !== 'function') {
+      return { found: false, tokens: [] };
+    }
+    let tokens: any[] = [];
+    try {
+      tokens = el.getTokens().map((token: any) => ({
+        id: typeof token.getId === 'function' ? token.getId() : undefined,
+        key: typeof token.getKey === 'function' ? token.getKey() : undefined,
+        text: typeof token.getText === 'function' ? token.getText() : undefined,
+      }));
+    } catch {
+      tokens = [];
+    }
+    return { found: true, tokens };
+  }
+
+  /**
+   * Reads a `sap.m.Tree`'s currently rendered items, in the tree's own flat order - collapsed
+   * descendants simply aren't in this list, matching what's actually on screen. Backs `Ui5Tree` -
+   * see docs/tree.md.
+   *
+   * `getLevel()`/`getExpanded()` are verified (against a real `sap.m.Tree` SDK sample) to exist
+   * directly on each rendered `sap.m.StandardTreeItem`, not just as DOM attributes - so this reads
+   * them the same way every other control-state read in this file does, straight off the control.
+   * "Leaf" isn't a getter the control exposes; the verified, reliable signal is the
+   * `sapMTreeItemBaseLeaf` CSS class SAPUI5's own renderer puts on a leaf node's `<li>` (a node
+   * with no children never gets an expand toggle at all).
+   */
+  function getTreeInfo(id: string) {
+    const el = findByExactId(id);
+    if (!el || typeof el.getItems !== 'function') {
+      return { found: false, items: [] };
+    }
+    let items: any[] = [];
+    try {
+      items = el.getItems().map((item: any) => {
+        let leaf = false;
+        try {
+          const domRef = typeof item.getDomRef === 'function' ? item.getDomRef() : null;
+          leaf = !!(
+            domRef &&
+            domRef.classList &&
+            domRef.classList.contains('sapMTreeItemBaseLeaf')
+          );
+        } catch {
+          leaf = false;
+        }
+        return {
+          id: typeof item.getId === 'function' ? item.getId() : undefined,
+          title: typeof item.getTitle === 'function' ? item.getTitle() : undefined,
+          level: typeof item.getLevel === 'function' ? item.getLevel() : 0,
+          expanded: typeof item.getExpanded === 'function' ? item.getExpanded() : undefined,
+          leaf,
+        };
+      });
+    } catch {
+      items = [];
+    }
+    return { found: true, items };
+  }
+
+  /** Expands every node of a `sap.m.Tree` down to `level` (0-based) at once, via the control's own
+   * `expandToLevel()` - the base `sap.m.Tree` has no single rendered control that does this (only
+   * a per-node expand toggle, one click per node), so this is one of the few bridge actions that
+   * calls a control method directly rather than dispatching a DOM click. Backs
+   * `Ui5Tree.expandToLevel()`. */
+  function expandTreeToLevel(id: string, level: number) {
+    const el = findByExactId(id);
+    if (!el || typeof el.expandToLevel !== 'function') return { found: false, ok: false };
+    try {
+      el.expandToLevel(level);
+      return { found: true, ok: true };
+    } catch (e) {
+      return { found: true, ok: false, error: e instanceof Error ? e.message : String(e) };
+    }
+  }
+
+  /** Collapses every node of a `sap.m.Tree` via the control's own `collapseAll()` - same reasoning
+   * as `expandTreeToLevel` above: there's no rendered "collapse all" control to click. Backs
+   * `Ui5Tree.collapseAll()`. */
+  function collapseTreeAll(id: string) {
+    const el = findByExactId(id);
+    if (!el || typeof el.collapseAll !== 'function') return { found: false, ok: false };
+    try {
+      el.collapseAll();
+      return { found: true, ok: true };
+    } catch (e) {
+      return { found: true, ok: false, error: e instanceof Error ? e.message : String(e) };
+    }
+  }
+
+  /**
    * Collects load/performance numbers for the current document. Backs `Ui5Performance.metrics()` -
    * see docs/performance.md.
    *
@@ -1712,4 +1859,9 @@ export function bridgeScript(): void {
   bridge.getHash = getHash;
   bridge.routerNavTo = routerNavTo;
   bridge.getAppManifestInfo = getAppManifestInfo;
+  bridge.getWizardInfo = getWizardInfo;
+  bridge.getMultiInputInfo = getMultiInputInfo;
+  bridge.getTreeInfo = getTreeInfo;
+  bridge.expandTreeToLevel = expandTreeToLevel;
+  bridge.collapseTreeAll = collapseTreeAll;
 }

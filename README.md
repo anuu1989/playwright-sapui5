@@ -23,7 +23,8 @@ asynchronously as data binds and routes change, and shows/hides busy indicators 
 - **A test-suite generator CLI** (`pw-sapui5 generate-tests`) that loads your app, works out what
   it is - routes, control mix, measured startup - and writes a runnable starter suite for it.
 - **A project scaffolding CLI** (`pw-sapui5 init`) that sets up a whole runnable project - config,
-  example test, editor setup - in one command.
+  example test, editor setup, VS Code snippets for this framework's own common patterns, and a
+  ready-to-run CI pipeline (GitHub Actions, Azure Pipelines, or GitLab CI) - in one command.
 - **Custom `expect` matchers** (`toHaveUi5Property`, `toHaveUi5Text`, `toBeUi5Busy`) that read a
   control's own live property values through the bridge, not just its rendered DOM text.
 - **`Ui5Table`** and **`Ui5Dialog`** - higher-level helpers for the two things every real Fiori
@@ -102,6 +103,17 @@ asynchronously as data binds and routes change, and shows/hides busy indicators 
 - **Flaky test detection** - a reporter that aggregates Playwright's own retry data into a
   run-level report, and, given a history file, flags tests that aren't reliably passing across
   runs as quarantine candidates - see [docs/flaky-tests.md](docs/flaky-tests.md).
+- **`Ui5Wizard`** - step navigation for `sap.m.Wizard`, the guided multi-step flow control behind
+  "Create Product"/"Set Up Approval" style processes: reads each step's title and validation
+  state, and advances by clicking each step's own "Next" button (SAPUI5 renders one per step, not
+  a single shared one), verified against a real `sap.m.Wizard` SDK sample - see
+  [docs/wizard.md](docs/wizard.md).
+- **`Ui5MultiInput`** - adds tokens to `sap.m.MultiInput`/`sap.m.MultiComboBox` via the real
+  suggestion popup (not by calling `addToken()` directly) and reads a token's real bound `key`,
+  which never touches the DOM - see [docs/multi-input.md](docs/multi-input.md).
+- **`Ui5Tree`** - reads `sap.m.Tree`'s currently-rendered nodes (a collapsed node's children don't
+  exist in the DOM at all, not just hidden) and expands/collapses by clicking each node's own
+  toggle, verified against a real `sap.m.Tree` SDK sample - see [docs/tree.md](docs/tree.md).
 - **Four real, free demo-app walkthroughs** - a complete Fiori Elements List Report + Object Page,
   classic master-detail navigation, `sap.m.PlanningCalendar`, and a different app shell
   (`sap.tnt.ToolPage`) - see [docs/demo-apps.md](docs/demo-apps.md).
@@ -178,6 +190,7 @@ export class CartPage extends Ui5Page {
 | [docs/typescript-for-beginners.md](docs/typescript-for-beginners.md) | **Start here if TypeScript itself is new to you** - every bit of syntax you'll meet, explained                                                |
 | [docs/getting-started.md](docs/getting-started.md)                   | Install, prerequisites, your first test, running it                                                                                           |
 | [docs/how-to.md](docs/how-to.md)                                     | **"How do I…?" cookbook** - every feature indexed by task, one runnable snippet each                                                          |
+| [docs/cheat-sheet.md](docs/cheat-sheet.md)                           | **One-page quick reference** - every class's most-used calls, no explanations, for when you already know the framework                        |
 | [docs/init.md](docs/init.md)                                         | `pw-sapui5 init` - scaffold a whole ready-to-run project in one command                                                                       |
 | [docs/core-concepts.md](docs/core-concepts.md)                       | Why SAPUI5 needs a different approach; how the framework works under the hood                                                                 |
 | [docs/architecture.md](docs/architecture.md)                         | **Code-level walkthrough**: every source file's job, and step-by-step traces of what actually runs for `goto()`, `.click()`, and self-healing |
@@ -207,6 +220,9 @@ export class CartPage extends Ui5Page {
 | [docs/icon-tab-bar.md](docs/icon-tab-bar.md)                         | `Ui5IconTabBar` - tabs, keys and badge counts for `sap.m.IconTabBar`/`IconTabHeader`                                                          |
 | [docs/split-app.md](docs/split-app.md)                               | `Ui5SplitApp` - mode and current pages for the classic master/detail shell                                                                    |
 | [docs/form-inputs.md](docs/form-inputs.md)                           | `Ui5Select` / `Ui5DatePicker` - dropdowns and dates, without the usual flakiness                                                              |
+| [docs/multi-input.md](docs/multi-input.md)                           | `Ui5MultiInput` - adding/reading/removing tokens on `sap.m.MultiInput`/`MultiComboBox`                                                        |
+| [docs/wizard.md](docs/wizard.md)                                     | `Ui5Wizard` - step navigation for `sap.m.Wizard`'s guided multi-step flows                                                                    |
+| [docs/tree.md](docs/tree.md)                                         | `Ui5Tree` - reading and expanding/collapsing `sap.m.Tree`'s hierarchical nodes                                                                |
 | [docs/messages.md](docs/messages.md)                                 | `Ui5MessageToast` (race-free toast assertions) and `Ui5Messages` (validation/backend errors)                                                  |
 | [docs/demo-apps.md](docs/demo-apps.md)                               | Four real, free demo apps (Fiori Elements, master-detail, PlanningCalendar, a different shell)                                                |
 | [docs/examples.md](docs/examples.md)                                 | A guided tour of every example test - search, self-healing, data-driven tests, network mocking, and more                                      |
@@ -245,12 +261,13 @@ after `npm run build`.
 ### `pw-sapui5 init`
 
 Scaffolds a ready-to-run project: `playwright.config.ts`, `tsconfig.json`, an example Page Object
-and spec, `.env.example`, VS Code settings, and `.gitignore` entries.
+and spec, `.env.example`, VS Code settings and snippets, a CI pipeline, and `.gitignore` entries.
 
 | Option                 | Default                         | What it does                                                                                               |
 | ---------------------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | `-d, --dir <path>`     | `.`                             | Directory to scaffold into. Created if missing.                                                            |
 | `-b, --base-url <url>` | `https://your-app.example.com/` | Baked into `playwright.config.ts` as the `baseURL`, so tests can use relative paths.                       |
+| `--ci <provider>`      | `github`                        | Which CI pipeline to scaffold: `github`, `azure`, `gitlab`, or `none` to skip it.                          |
 | `-f, --force`          | `false`                         | Overwrite files that already exist. Without it, existing files are left untouched and reported as skipped. |
 
 ```bash
@@ -264,9 +281,16 @@ npx playwright test
 # Scaffold into a subdirectory instead of the current one
 npx pw-sapui5 init --dir e2e --base-url https://your-app.example.com/
 
+# On Azure DevOps or GitLab instead of GitHub
+npx pw-sapui5 init --base-url https://your-app.example.com/ --ci azure
+npx pw-sapui5 init --base-url https://your-app.example.com/ --ci gitlab
+
 # Re-scaffold, replacing files you have already edited (destructive - commit first)
 npx pw-sapui5 init --force
 ```
+
+See [docs/init.md](docs/init.md) for exactly what each CI pipeline does and what the five VS Code
+snippets (`ui5page`, `ui5test`, `ui5locator`, `ui5fallback`, `ui5matcher`) expand to.
 
 ### `pw-sapui5 generate`
 
@@ -465,6 +489,12 @@ needed.
 (The visual regression test skips itself outside macOS - see
 [docs/visual-testing.md](docs/visual-testing.md#platform-sensitivity).) See
 [docs/examples.md](docs/examples.md) for a guided tour of which file covers what.
+
+## Contributing
+
+Bug reports, feature requests, and PRs are welcome - see [CONTRIBUTING.md](CONTRIBUTING.md) for
+setup, the "verify against a real app" standard every change is held to, and code style. By
+participating, you're expected to follow the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## License
 
