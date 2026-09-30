@@ -1,0 +1,42 @@
+name: Bug report
+description: Something doesn't work as expected
+labels: [bug]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Minimal repro
+      description: A real app URL plus a short test is far more useful than a description.
+      render: typescript
+    validations:
+      required: true
+  - type: input
+    id: control
+    attributes:
+      label: SAPUI5 control involved
+      description: e.g. sap.m.Select, sap.ui.table.Table
+  - type: input
+    id: ui5-version
+    attributes:
+      label: SAPUI5 / OpenUI5 version
+  - type: input
+    id: version
+    attributes:
+      label: playwright-sapui5 version
+    validations:
+      required: true
+  - type: input
+    id: playwright-version
+    attributes:
+      label: Playwright and Node versions
+  - type: textarea
+    id: logs
+    attributes:
+      label: Error output / logs
+      render: shell

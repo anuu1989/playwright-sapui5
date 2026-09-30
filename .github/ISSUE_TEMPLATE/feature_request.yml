@@ -1,0 +1,24 @@
+name: Feature request
+description: Suggest a new control helper or capability
+labels: [enhancement]
+body:
+  - type: textarea
+    id: scenario
+    attributes:
+      label: Real-world scenario
+      description: What are you trying to test that you can't today? A concrete scenario beats an abstract API proposal.
+    validations:
+      required: true
+  - type: input
+    id: app
+    attributes:
+      label: Public app or SDK sample that shows it
+      description: A URL where the control/behavior can be exercised, so it can be verified against a live app.
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed API (optional)
+  - type: textarea
+    id: workaround
+    attributes:
+      label: Current workaround (optional)
