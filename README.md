@@ -1,4 +1,4 @@
-# playwright-sapui5
+# playwright-sapui5 [![CI](https://github.com/anuu1989/playwright-sapui5/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/anuu1989/playwright-sapui5/actions/workflows/ci.yml)
 
 An intelligent [Playwright](https://playwright.dev) test automation framework and library for
 **SAPUI5 / Fiori** applications, in TypeScript.
