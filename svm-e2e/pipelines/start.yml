@@ -1,0 +1,19 @@
+# Daily or on demand: starts one run (uploads the add SBOM and saves the run as ADDED).
+name: svm-e2e-start
+on:
+  schedule: [{ cron: '0 6 * * *' }]
+  workflow_dispatch:
+concurrency: svm-e2e-store
+jobs:
+  start:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: svm-e2e } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: npm, cache-dependency-path: svm-e2e/package-lock.json }
+      - run: npm ci
+      # NOTE: the JSON run store must persist between pipelines (cache/artifact/branch or swap in a DB via STORE_PATH).
+      - run: npm run start-run
+        env:
+          BD_API_TOKEN: ${{ secrets.BD_API_TOKEN }}

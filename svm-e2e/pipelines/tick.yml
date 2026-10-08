@@ -1,0 +1,24 @@
+# Hourly: advances Black Duck steps, runs due SVM checks, then notifies finished runs.
+name: svm-e2e-tick
+on:
+  schedule: [{ cron: '5 * * * *' }]
+  workflow_dispatch:
+concurrency: svm-e2e-store # the file store has no row locking
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: svm-e2e } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: npm, cache-dependency-path: svm-e2e/package-lock.json }
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run tick:all
+        env:
+          BD_API_TOKEN: ${{ secrets.BD_API_TOKEN }}
+          SVM_API_TOKEN: ${{ secrets.SVM_API_TOKEN }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: svm-e2e-reports, path: "svm-e2e/results\nsvm-e2e/playwright-report" }

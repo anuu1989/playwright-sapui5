@@ -1,0 +1,36 @@
+blackduck:
+  url: https://verint.app.blackduck.com
+  project: svm-e2e-sync
+  version_strategy: per_run # per_run | shared
+  shared_version: e2e-shared # used when version_strategy is shared
+  # Confirm both against your instance's /api-doc
+  sbom_upload_path: /api/scan/data/
+svm:
+  api_url: https://svm.example.invalid # SVM API base URL
+  ui_url: https://svm.example.invalid # SVM UI base URL
+  # {project} is replaced with the Black Duck project name (asset_lookup: by_project_name)
+  components_path: /api/assets/{project}/components
+  asset_ui_path: /assets/{project}
+  asset_lookup: by_project_name
+timing:
+  sync_wait_hours: 8
+  retry_every_minutes: 30
+  retry_window_hours: 2
+  bom_ready_timeout_minutes: 30
+  removal_fallback_after_minutes: 60
+  stuck_after_hours: 24
+# First entry is the one under test; the rest are backups. Verify during the Phase 0 spikes that
+# Black Duck matches them from an SBOM and still lists vulnerabilities.
+components:
+  - {
+      name: log4j-core,
+      version: 2.14.1,
+      purl: 'pkg:maven/org.apache.logging.log4j/log4j-core@2.14.1',
+    }
+  - {
+      name: commons-collections,
+      version: 3.2.1,
+      purl: 'pkg:maven/commons-collections/commons-collections@3.2.1',
+    }
+control_component:
+  { name: slf4j-api, version: 1.7.36, purl: 'pkg:maven/org.slf4j/slf4j-api@1.7.36' }
