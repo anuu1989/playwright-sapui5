@@ -29,6 +29,8 @@ re-checked on later ticks so no job waits on Black Duck's processing.
 | `npm run status`                 | Print every run                                                         |
 | `npm test` / `npm run typecheck` | Unit tests (mocked Black Duck) / types                                  |
 
+> New here? Start with the [beginner guide](../docs/svm-e2e-sync.md).
+
 ## How to run it
 
 1. **Install** (Node 20+): `cd svm-e2e && npm ci && npx playwright install chromium`.
