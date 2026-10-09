@@ -1,0 +1,26 @@
+# Accelerated timings for `npm run demo` against the local mock (seconds instead of hours).
+blackduck:
+  url: http://127.0.0.1:9 # overridden by BD_URL
+  project: svm-e2e-sync
+  version_strategy: per_run
+  sbom_upload_path: /api/scan/data/
+svm:
+  api_url: http://127.0.0.1:9 # overridden by SVM_API_URL
+  ui_url: http://127.0.0.1:9 # overridden by SVM_UI_URL
+  components_path: /api/assets/{project}/components
+  asset_ui_path: /assets/{project}
+timing:
+  sync_wait_hours: 0.0006 # ~2 s
+  retry_every_minutes: 0.03 # ~2 s
+  retry_window_hours: 0.01 # ~36 s
+  bom_ready_timeout_minutes: 1
+  removal_fallback_after_minutes: 0.2 # ~12 s
+  stuck_after_hours: 24
+components:
+  - {
+      name: log4j-core,
+      version: 2.14.1,
+      purl: 'pkg:maven/org.apache.logging.log4j/log4j-core@2.14.1',
+    }
+control_component:
+  { name: slf4j-api, version: 1.7.36, purl: 'pkg:maven/org.slf4j/slf4j-api@1.7.36' }

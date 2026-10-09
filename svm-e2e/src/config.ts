@@ -42,7 +42,16 @@ export function loadSettings(
   path = process.env.SVM_E2E_CONFIG ?? 'config/settings.yaml',
 ): Settings {
   const raw = readFileSync(resolve(PACKAGE_ROOT, path), 'utf8');
-  return settingsSchema.parse(parse(raw));
+  const yaml = parse(raw);
+  // Deployment URLs differ per environment (internal Black Duck/SVM), so env vars win over the YAML.
+  const override = (section: 'blackduck' | 'svm', key: string, envName: string) => {
+    const v = process.env[envName]?.trim().replace(/\/+$/, '');
+    if (v) yaml[section] = { ...yaml[section], [key]: v };
+  };
+  override('blackduck', 'url', 'BD_URL');
+  override('svm', 'api_url', 'SVM_API_URL');
+  override('svm', 'ui_url', 'SVM_UI_URL');
+  return settingsSchema.parse(yaml);
 }
 
 export function requireEnv(name: string): string {

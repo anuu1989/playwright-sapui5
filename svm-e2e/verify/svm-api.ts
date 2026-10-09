@@ -11,6 +11,8 @@ export interface DueRun {
   control: string;
   controlVersion: string;
   vulnIds: string[];
+  /** False after the unmap fallback, which also drops the control component. */
+  expectControl: boolean;
 }
 
 export interface SvmComponent {

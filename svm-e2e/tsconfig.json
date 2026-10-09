@@ -10,5 +10,13 @@
     "noEmit": true,
     "types": ["node"]
   },
-  "include": ["src", "verify", "test", "playwright.config.ts"]
+  "include": [
+    "src",
+    "verify",
+    "test",
+    "mock",
+    "scripts",
+    "vitest.config.ts",
+    "playwright.config.ts"
+  ]
 }

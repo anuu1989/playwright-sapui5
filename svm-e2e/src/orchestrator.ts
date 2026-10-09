@@ -150,10 +150,10 @@ export async function removeStep(d: Deps, run: RunRow): Promise<void> {
   const now = nowOf(d);
   const gone = async () => {
     const comps = await d.bd.getBomComponents(pv);
-    return (
-      !hasComponent(comps, run.componentName, run.componentVersion) &&
-      comps.some((c) => c.name === run.controlComponent)
-    );
+    if (hasComponent(comps, run.componentName, run.componentVersion)) return false;
+    // Unmapping a code location drops everything that scan found, control included, so the
+    // control can only be required while removal goes through a replace scan.
+    return run.removalMethod === 'scan_unmap' || comps.some((c) => c.name === run.controlComponent);
   };
   const markRemoved = (method: RunRow['removalMethod']) => {
     d.store.transition(run.runId, 'REMOVED', {

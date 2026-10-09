@@ -14,6 +14,7 @@ const toDue = (r: RunRow) => ({
   control: r.controlComponent,
   controlVersion: r.controlVersion,
   vulnIds: r.vulnIds,
+  expectControl: r.removalMethod !== 'scan_unmap',
 });
 
 /** Playwright collects tests synchronously, so due runs are written to a file the specs read. */

@@ -29,14 +29,14 @@ code location, so the component drops off the BOM. This needs scan rights only.
 
 ## Words you will see
 
-| Word              | Meaning                                                                                                                                     |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| BOM               | The list of components Black Duck has for a project version                                                                                 |
-| SBOM              | A file listing components (this package uses CycloneDX JSON)                                                                                |
-| Code location     | The named place a scan is stored. Each run has its own: `e2e-<run_id>`                                                                      |
-| Run               | One add-then-remove test, saved as one row in `.data/e2e_runs.json`                                                                         |
-| Control component | A harmless component kept in both SBOMs. If it vanishes from SVM too, SVM lost the whole asset and "component absent" would be a false pass |
-| Tick              | The hourly job that advances due runs                                                                                                       |
+| Word              | Meaning                                                                                                                                                                                                                                    |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| BOM               | The list of components Black Duck has for a project version                                                                                                                                                                                |
+| SBOM              | A file listing components (this package uses CycloneDX JSON)                                                                                                                                                                               |
+| Code location     | The named place a scan is stored. Each run has its own: `e2e-<run_id>`                                                                                                                                                                     |
+| Run               | One add-then-remove test, saved as one row in `.data/e2e_runs.json`                                                                                                                                                                        |
+| Control component | A harmless component kept in both SBOMs. If it vanishes from SVM too, SVM lost the whole asset and "component absent" would be a false pass. After the unmap fallback it is dropped along with everything else, so it is not required then |
+| Tick              | The hourly job that advances due runs                                                                                                                                                                                                      |
 
 ## The life of a run
 
@@ -55,6 +55,65 @@ REMOVE_VERIFIED ◀──SVM dropped it── REMOVED (wait 8h)
 Only `FAIL`/`TIMEOUT` outcomes mean the sync is broken. `BLOCKED` (permission denied) and `ERROR`
 (network, expired token) are reported separately so they don't look like product bugs.
 
+## See the whole thing run: `npm run demo`
+
+The quickest way to understand the package. It starts a local mock Black Duck and SVM, then runs
+the **real** CLI and the **real** Playwright specs against them, with timings shrunk from hours to
+seconds.
+
+```bash
+cd svm-e2e
+npm ci
+npx playwright install chromium
+npm run demo
+```
+
+Output from a real run (the numbers in brackets are seconds since the run started):
+
+```text
+[e2e-20261009-0234-k404x8] add SBOM uploaded
+[e2e-20261009-0234-k404x8] ADDED, 1 vulnerabilities, first SVM check at 2026-10-09T02:34:42.081Z
+[  1s] ADDED
+[  4s] WAITING_ADD_SYNC
+[  6s] ADD_VERIFIED
+[e2e-20261009-0234-k404x8] remove SBOM uploaded
+[  9s] REMOVING (removal: scan_replace)
+[ 11s] REMOVED (removal: scan_replace)
+[ 14s] REMOVE_VERIFIED (removal: scan_replace)
+
+PASS e2e-20261009-0234-k404x8 (REMOVE_VERIFIED) | component log4j-core@2.14.1 | add: PASS | remove: PASS via scan_replace
+```
+
+Two more scenarios cover the unhappy paths:
+
+```bash
+npm run demo -- --ignore-replace   # Black Duck ignores the replacement scan
+npm run demo -- --block            # the account is denied on removal
+```
+
+With `--ignore-replace` the run notices the component is still in the BOM, unmaps the code
+location, and still passes:
+
+```text
+[ 11s] REMOVING (removal: scan_replace)
+[e2e-20261009-0235-zhc4fu] replace scan did not remove the component; unmapped code location (A2)
+[ 28s] REMOVED (removal: scan_unmap)
+[ 31s] REMOVE_VERIFIED (removal: scan_unmap)
+```
+
+With `--block` the add still passes, and the denied removal is reported as `BLOCKED`, not as a
+product failure:
+
+```text
+[  6s] ADD_VERIFIED
+[e2e-20261009-0236-uhmvb3] removal BLOCKED (403)
+[  9s] REMOVAL_BLOCKED
+BLOCKED e2e-20261009-0236-uhmvb3 (REMOVAL_BLOCKED) | component log4j-core@2.14.1 | add: PASS | remove: BLOCKED via none
+```
+
+The mock lives in `svm-e2e/mock/server.ts`. It proves the code is consistent with itself, not that
+the real Black Duck or SVM behave the same way.
+
 ## Try it offline (no accounts needed)
 
 You need Node 20+.
@@ -62,7 +121,7 @@ You need Node 20+.
 ```bash
 cd svm-e2e
 npm ci
-npm test            # 11 unit tests with a fake Black Duck
+npm test            # unit tests plus HTTP integration tests against the mock
 npm run typecheck
 ```
 
@@ -161,6 +220,9 @@ the clock with `advance()` → `tick` → assert on `store.get(...)`.
 ```bash
 cd svm-e2e
 npx playwright install chromium
+export BD_URL=https://blackduck.your-company.internal  # your internal Black Duck (overrides the YAML)
+export SVM_API_URL=...     # optional, overrides svm.api_url
+export SVM_UI_URL=...      # optional, overrides svm.ui_url
 export BD_API_TOKEN=...    # Black Duck, scan rights on the test project
 export SVM_API_TOKEN=...   # SVM, read-only
 export SLACK_WEBHOOK_URL=... # optional
@@ -189,6 +251,8 @@ every run is. Reports land in `svm-e2e/results/junit.xml` and `svm-e2e/playwrigh
 
 ## Where to go next
 
-- [`svm-e2e/README.md`](../svm-e2e/README.md): command table, config and known limits.
+- [`svm-e2e/README.md`](../svm-e2e/README.md): command table and what must be confirmed.
+- [Architecture](../svm-e2e/docs/architecture.md), [configuration](../svm-e2e/docs/configuration.md)
+  and [runbook](../svm-e2e/docs/runbook.md): the reference docs.
 - `svm-e2e/src/orchestrator.ts`: the state machine.
 - `svm-e2e/verify/phase.ts`: the SVM checks and how each outcome is recorded.

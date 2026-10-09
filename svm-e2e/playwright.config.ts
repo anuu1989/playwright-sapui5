@@ -9,7 +9,5 @@ export default defineConfig({
   reporter: [['junit', { outputFile: 'results/junit.xml' }], ['html', { open: 'never' }], ['list']],
   use: {
     trace: 'retain-on-failure',
-    screenshot: 'on',
-    storageState: process.env.SVM_UI_STORAGE_STATE || undefined,
   },
 });
