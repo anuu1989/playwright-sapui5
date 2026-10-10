@@ -12,6 +12,7 @@ export const settingsSchema = z.object({
     version_strategy: z.enum(['per_run', 'shared']).default('per_run'),
     shared_version: z.string().default('e2e-shared'),
     sbom_upload_path: z.string().default('/api/scan/data/'),
+    sbom_content_type: z.string().default('application/vnd.cyclonedx+json'),
   }),
   svm: z.object({
     api_url: z.string().url(),

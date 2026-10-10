@@ -20,6 +20,13 @@ export interface BdApi {
   unmapCodeLocation(id: string): Promise<void>;
 }
 
+/** Black Duck's REST API is versioned through vendor media types; list endpoints need these Accept headers. */
+export const MEDIA = {
+  project: 'application/vnd.blackducksoftware.project-detail-5+json',
+  bom: 'application/vnd.blackducksoftware.bill-of-materials-6+json',
+  scan: 'application/vnd.blackducksoftware.scan-4+json',
+} as const;
+
 const idFromHref = (href: string) => href.split('/').filter(Boolean).pop() ?? '';
 const page = <T extends z.ZodTypeAny>(item: T) => z.object({ items: z.array(item) });
 
@@ -84,8 +91,12 @@ export class BdClient implements BdApi {
     return res;
   }
 
-  private async getJson<T extends z.ZodTypeAny>(path: string, schema: T): Promise<z.infer<T>> {
-    const res = await this.request(path);
+  private async getJson<T extends z.ZodTypeAny>(
+    path: string,
+    schema: T,
+    accept?: string,
+  ): Promise<z.infer<T>> {
+    const res = await this.request(path, accept ? { headers: { Accept: accept } } : {});
     const parsed = schema.safeParse(await res.json());
     if (!parsed.success)
       throw new InfraError(
@@ -99,6 +110,7 @@ export class BdClient implements BdApi {
     const projects = await this.getJson(
       `/api/projects?q=${encodeURIComponent(`name:${project}`)}&limit=100`,
       page(projectItem),
+      MEDIA.project,
     );
     const p = projects.items.find((i) => i.name === project);
     if (!p)
@@ -109,6 +121,7 @@ export class BdClient implements BdApi {
       const versions = await this.getJson(
         `/api/projects/${projectId}/versions?limit=1000`,
         page(versionItem),
+        MEDIA.project,
       );
       return versions.items.find((v) => v.versionName === version);
     };
@@ -133,6 +146,7 @@ export class BdClient implements BdApi {
     const res = await this.getJson(
       `/api/projects/${projectId}/versions/${versionId}/components?limit=1000`,
       page(bomItem),
+      MEDIA.bom,
     );
     return res.items.map((i) => ({ name: i.componentName, version: i.componentVersionName ?? '' }));
   }
@@ -145,6 +159,7 @@ export class BdClient implements BdApi {
     const res = await this.getJson(
       `/api/projects/${projectId}/versions/${versionId}/vulnerable-bom-components?limit=1000`,
       page(vulnItem),
+      MEDIA.bom,
     );
     return res.items
       .filter((i) => i.componentName === name && (i.componentVersionName ?? version) === version)
@@ -155,6 +170,7 @@ export class BdClient implements BdApi {
     const res = await this.getJson(
       `/api/codelocations?q=${encodeURIComponent(`name:${name}`)}&limit=100`,
       page(codeLocationItem),
+      MEDIA.scan,
     );
     const cl = res.items.find((i) => i.name === name);
     return cl ? { id: idFromHref(cl._meta.href), mapped: !!cl.mappedProjectVersion } : undefined;

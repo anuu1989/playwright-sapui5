@@ -23,6 +23,7 @@ export class ApiScanUploader implements ScanUploader {
   constructor(
     private bd: BdClient,
     private uploadPath: string,
+    private contentType = 'application/vnd.cyclonedx+json',
   ) {}
 
   async upload(req: UploadRequest): Promise<void> {
@@ -35,7 +36,7 @@ export class ApiScanUploader implements ScanUploader {
     try {
       await this.bd.request(`${this.uploadPath}?${qs}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/vnd.cyclonedx+json' },
+        headers: { 'Content-Type': this.contentType },
         body: JSON.stringify(req.sbom),
       });
     } catch (err) {

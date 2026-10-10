@@ -10,7 +10,11 @@ function deps(): Deps {
   const bd = new BdClient(cfg.blackduck.url, requireEnv('BD_API_TOKEN'));
   return {
     bd,
-    uploader: new ApiScanUploader(bd, cfg.blackduck.sbom_upload_path),
+    uploader: new ApiScanUploader(
+      bd,
+      cfg.blackduck.sbom_upload_path,
+      cfg.blackduck.sbom_content_type,
+    ),
     store: new RunStore(storePath()),
     cfg,
   };

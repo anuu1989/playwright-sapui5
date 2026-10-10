@@ -2,6 +2,41 @@
 
 For whoever owns the test once it runs unattended.
 
+## Phase 0 spike: validate against your real systems
+
+Everything in this package was built from the design doc and tested against a mock. Before the
+first real run, `npm run spike` checks each assumption against your Black Duck and SVM with your
+own tokens, and writes `results/spike-report.md`.
+
+```bash
+export BD_URL=https://blackduck.your-company.internal
+export BD_API_TOKEN=...                 # the scan-only service account
+export SVM_API_URL=...  SVM_UI_URL=...  SVM_API_TOKEN=...
+npm run spike                           # add --no-svm to check Black Duck only, --keep to skip the unmap
+```
+
+It only touches the test project: it creates a version and code location named `e2e-spike-<time>`,
+uploads the add SBOM and then the remove SBOM, and unmaps the code location at the end.
+
+| Step                               | What a FAIL tells you                                                            | Fix                                                                                                                        |
+| ---------------------------------- | -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| authenticate                       | Wrong URL or token, or the account is denied                                     | Check `BD_URL` and the token; set `NODE_EXTRA_CA_CERTS` for a private CA                                                   |
+| test project and version           | The project `svm-e2e-sync` does not exist, or the account cannot create versions | Create the project; grant version creation on it                                                                           |
+| upload add SBOM                    | Wrong endpoint or content type, or no scan rights                                | Adjust `blackduck.sbom_upload_path` and `sbom_content_type` (check `/api-doc`), or implement a Detect-based `ScanUploader` |
+| BOM built                          | Black Duck did not match the component from the SBOM                             | Pick another component or a different `purl` in `settings.yaml`                                                            |
+| vulnerabilities listed             | No vulnerabilities known for that component version                              | Pick a component with long-standing vulnerabilities                                                                        |
+| replace scan removes the component | Duplicate detection or a minimum scan interval is on                             | Ask the Black Duck admin; raise `removal_fallback_after_minutes` above the interval                                        |
+| unmap allowed                      | The account lacks unmap rights                                                   | Ask for the smallest role that allows it, or use a cleanup service (option B)                                              |
+| SVM API components                 | Wrong path, auth or response shape                                               | Adjust `svm.components_path` and the schema in `verify/svm-api.ts`                                                         |
+| SVM UI asset page                  | Wrong path, or a login redirect                                                  | Adjust `svm.asset_ui_path`; provide `SVM_UI_STORAGE_STATE`                                                                 |
+
+The last row of the report is not a check: ask the SVM owner whether 8 hours is a maximum or a
+typical figure, and whether SVM drops a component that leaves the BOM or only marks it resolved.
+The removal assertion depends on the answer.
+
+Exit criterion: one manual add and one manual remove done end to end, with the API calls written
+down. Then choose option A (replace scan), A2 (unmap) or B (cleanup service).
+
 ## Daily glance
 
 `npm run status` prints one line per run:
@@ -57,6 +92,7 @@ leftovers of failed runs. Whole versions can be removed by the Black Duck admin.
 | `Missing required environment variable`                      | Export the secret named in the message                                                                                                            |
 | `Black Duck project "…" not found`                           | Create the test project first                                                                                                                     |
 | `no vulnerabilities for <component>` at start                | Black Duck did not match or has none for that component; choose another in `components`                                                           |
+| Spike step fails                                             | See the table in "Phase 0 spike" above                                                                                                            |
 | `Unexpected Black Duck response` / `Unexpected SVM response` | An API changed shape or the spike assumptions were wrong; adjust the zod schema in `src/bd-client.ts` or `verify/svm-api.ts`                      |
 | Playwright "No tests found"                                  | No run is due this hour; `npm run verify` treats that as success                                                                                  |
 | Every run `ERROR` at once                                    | Token expired or lost scope, or Black Duck/SVM is down                                                                                            |

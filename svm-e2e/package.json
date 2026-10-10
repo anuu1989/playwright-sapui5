@@ -16,7 +16,8 @@
     "tick:all": "npm run tick && (npx playwright test --pass-with-no-tests; rc=$?; npm run notify; exit $rc)",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json",
-    "demo": "tsx scripts/demo.ts"
+    "demo": "tsx scripts/demo.ts",
+    "spike": "tsx scripts/spike.ts"
   },
   "dependencies": {
     "yaml": "^2.5.0",

@@ -31,7 +31,8 @@ systems behave the same way (see [what must be confirmed](#must-be-confirmed-aga
 
 ## Run it for real
 
-1. **Spikes first** (below): confirm the real endpoints, then fix the items listed there.
+1. **Run the spike**: `npm run spike` checks every assumption against your real Black Duck and SVM and
+   writes `results/spike-report.md`. Fix what fails (see the [runbook](docs/runbook.md#phase-0-spike-validate-against-your-real-systems)).
 2. **Configure**: edit `config/settings.yaml` (project, SVM paths, components) and export:
    ```bash
    export BD_URL=https://blackduck.your-company.internal  # internal deployment URL
@@ -76,7 +77,7 @@ The SVM API decides pass or fail; the UI check is recorded as evidence and never
 ## Must be confirmed against your instances
 
 The package was built from the design doc and checked only against `mock/server.ts`. These are
-assumptions until the Phase 0 spikes confirm them on the real systems:
+assumptions until `npm run spike` confirms them on the real systems:
 
 - `blackduck.sbom_upload_path` and its query parameters (`ApiScanUploader`), or swap in Detect.
 - The unmap call: `PUT /api/codelocations/{id}` with an empty `mappedProjectVersion`.

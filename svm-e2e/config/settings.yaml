@@ -5,6 +5,7 @@ blackduck:
   shared_version: e2e-shared # used when version_strategy is shared
   # Confirm both against your instance's /api-doc
   sbom_upload_path: /api/scan/data/
+  sbom_content_type: application/vnd.cyclonedx+json # confirm with `npm run spike`
 svm:
   api_url: https://svm.example.invalid # SVM API base URL
   ui_url: https://svm.example.invalid # SVM UI base URL

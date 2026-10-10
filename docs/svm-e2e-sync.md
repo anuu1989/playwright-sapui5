@@ -4,8 +4,8 @@ This guide explains the [`svm-e2e/`](../svm-e2e) package from scratch, with exam
 without touching Black Duck or SVM.
 
 > The Black Duck and SVM endpoints in this package are written from the design doc and have **not
-> been verified against live systems**. Everything in "Try it offline" runs for real; the
-> "Run it for real" part needs the setup spikes in [Before the first real run](#before-the-first-real-run).
+> been verified against live systems**. The demo and tests run for real against a mock; for your
+> own systems, run `npm run spike` first ([Before the first real run](#before-the-first-real-run)).
 
 ## The idea in one minute
 
@@ -209,11 +209,14 @@ the clock with `advance()` → `tick` → assert on `store.get(...)`.
 ## Before the first real run
 
 1. Create the Black Duck project `svm-e2e-sync` and a service account with scan rights on it only.
-2. Do the spikes: upload a two-component SBOM by hand, upload a second one without a component to
-   the same code location, and confirm the component leaves the BOM. Note the exact API calls.
-3. Fix the unverified pieces: `blackduck.sbom_upload_path` in `config/settings.yaml`, the Black
-   Duck calls in `src/bd-client.ts`, and the SVM calls in `verify/svm-api.ts` and
-   `verify/pages/svm-asset-page.ts`. Choose real components in `settings.yaml`.
+2. Run the spike: `npm run spike` checks every assumption in this package against your real Black
+   Duck and SVM and writes `results/spike-report.md`. It uploads a two-component SBOM, uploads a
+   second one without a component to the same code location, confirms the component leaves the
+   BOM, tests whether unmapping is allowed, and probes the SVM API and asset page.
+3. Fix whatever failed. The [runbook](../svm-e2e/docs/runbook.md#phase-0-spike-validate-against-your-real-systems)
+   has a table of each failure and its fix. Typical edits are `blackduck.sbom_upload_path`,
+   `sbom_content_type` and the components in `config/settings.yaml`, plus the SVM calls in
+   `verify/svm-api.ts` and `verify/pages/svm-asset-page.ts`.
 
 ## Run it for real
 
