@@ -1,7 +1,8 @@
-# Hourly: advances Black Duck steps, runs due SVM checks, then notifies finished runs.
+# Every 30 minutes (the SVM retry cadence): plan from the run store, and only when something is due
+# install browsers, advance Black Duck steps, run the SVM checks and notify finished runs.
 name: svm-e2e-tick
 on:
-  schedule: [{ cron: '5 * * * *' }]
+  schedule: [{ cron: '5,35 * * * *' }]
   workflow_dispatch:
 concurrency: svm-e2e-store # the file store has no row locking
 permissions:
@@ -15,9 +16,22 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 20, cache: npm, cache-dependency-path: svm-e2e/package-lock.json }
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
       - run: scripts/state.sh pull
-      - run: npm run tick:all
+      # Reads only the run store, no tokens. Most ticks find nothing due and stop here (~20 s).
+      - id: plan
+        run: npm run --silent plan
+      - if: steps.plan.outputs.svm == 'true'
+        uses: actions/cache@v4
+        id: browsers
+        with:
+          {
+            path: ~/.cache/ms-playwright,
+            key: "playwright-${{ runner.os }}-${{ hashFiles('svm-e2e/package-lock.json') }}",
+          }
+      - if: steps.plan.outputs.svm == 'true'
+        run: npx playwright install --with-deps chromium
+      - if: steps.plan.outputs.work == 'true'
+        run: npm run tick:all
         env:
           BD_URL: ${{ vars.BD_URL }}
           SVM_API_URL: ${{ vars.SVM_API_URL }}
@@ -26,7 +40,7 @@ jobs:
           SVM_API_TOKEN: ${{ secrets.SVM_API_TOKEN }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
       - run: scripts/state.sh push
-        if: always()
+        if: always() && steps.plan.outputs.work == 'true'
       - uses: actions/upload-artifact@v4
-        if: always()
+        if: always() && steps.plan.outputs.svm == 'true'
         with: { name: svm-e2e-reports, path: "svm-e2e/results\nsvm-e2e/playwright-report" }

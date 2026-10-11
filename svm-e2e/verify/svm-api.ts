@@ -33,6 +33,10 @@ const response = z.union([
 ]);
 
 /** Components SVM holds for the Black Duck project. Non-2xx and bad shapes are ERROR, not FAIL. */
+// Several due runs share one project, so one SVM call serves them all; short TTL keeps retries fresh.
+const memo = new Map<string, { at: number; data: SvmComponent[] }>();
+const TTL_MS = 30_000;
+
 export async function getAssetComponents(
   request: APIRequestContext,
   cfg: Settings,
@@ -41,6 +45,14 @@ export async function getAssetComponents(
   const url =
     cfg.svm.api_url +
     cfg.svm.components_path.replace('{project}', encodeURIComponent(run.projectName));
+  const hit = memo.get(url);
+  if (hit && Date.now() - hit.at < TTL_MS) return hit.data;
+  const data = await fetchComponents(request, url);
+  memo.set(url, { at: Date.now(), data });
+  return data;
+}
+
+async function fetchComponents(request: APIRequestContext, url: string): Promise<SvmComponent[]> {
   const res = await request.get(url, {
     headers: { Authorization: `Bearer ${process.env.SVM_API_TOKEN ?? ''}` },
   });

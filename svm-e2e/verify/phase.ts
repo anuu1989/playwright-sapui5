@@ -1,4 +1,4 @@
-import { chromium, test, expect } from '@playwright/test';
+import { chromium, test, expect, type Browser } from '@playwright/test';
 import { loadSettings, storePath } from '../src/config';
 import { BlockedError, DataMismatchError, InfraError } from '../src/errors';
 import { RunStore } from '../src/store';
@@ -7,11 +7,26 @@ import { SvmAssetPage } from './pages/svm-asset-page';
 
 const cfg = loadSettings();
 
+// One browser for every check in this file instead of one per run. It is launched lazily inside the
+// UI step (not through the `page` fixture), so a launch failure is recorded as a UI FAIL instead of
+// happening before the test body and stranding the run with no outcome.
+let sharedBrowser: Promise<Browser> | undefined;
+const getBrowser = () => {
+  sharedBrowser ??= chromium.launch();
+  sharedBrowser.catch(() => (sharedBrowser = undefined)); // retry the launch on the next check
+  return sharedBrowser;
+};
+
 /**
- * One test per due run. The SVM API decides pass/fail; the UI check is reported next to it and
- * never fails the run on its own. Outcomes are written to the run store.
+ * One test per due run. The SVM API check and the SVM UI check must both pass (the UI check can be
+ * made evidence-only with svm.ui_check_gates: false). Outcomes are written to the run store.
  */
 export function registerChecks(phase: 'add' | 'remove', due: DueRun[]): void {
+  test.afterAll(async () => {
+    const browser = await sharedBrowser?.catch(() => undefined);
+    sharedBrowser = undefined;
+    await browser?.close();
+  });
   const store = new RunStore(storePath());
   for (const run of due) {
     test(`SVM ${phase === 'add' ? 'shows added' : 'dropped removed'} component · ${run.runId}`, async ({
@@ -38,13 +53,11 @@ export function registerChecks(phase: 'add' | 'remove', due: DueRun[]): void {
         });
 
         const uiOk = await test.step('SVM UI', async () => {
-          // The browser is launched here, not through the `page` fixture: a fixture failure would
-          // happen before this test body and strand the run without recording any outcome. The
-          // UI check is evidence only, so a browser problem is a UI FAIL, never a run failure.
-          let browser;
+          let context;
           try {
-            browser = await chromium.launch();
-            const context = await browser.newContext({
+            context = await (
+              await getBrowser()
+            ).newContext({
               storageState: process.env.SVM_UI_STORAGE_STATE || undefined,
             });
             const page = await context.newPage();
@@ -71,12 +84,17 @@ export function registerChecks(phase: 'add' | 'remove', due: DueRun[]): void {
             });
             return false;
           } finally {
-            await browser?.close();
+            await context?.close();
           }
         });
 
         const seen = new Date().toISOString();
         store.addEvidence(run.runId, { [`${phase}Ui`]: uiOk ? 'PASS' : 'FAIL' });
+        // Flowchart: the test passes only when the API check AND the UI check pass. A UI miss is
+        // retried like any other miss; set svm.ui_check_gates: false to make the UI evidence only.
+        if (!uiOk && cfg.svm.ui_check_gates) {
+          throw new Error('SVM API check passed but the SVM UI check failed');
+        }
         if (phase === 'add')
           store.transition(run.runId, 'ADD_VERIFIED', {
             addResult: 'PASS',

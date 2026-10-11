@@ -20,15 +20,24 @@ export const settingsSchema = z.object({
     components_path: z.string(),
     asset_ui_path: z.string(),
     asset_lookup: z.string().default('by_project_name'),
+    // Flowchart: "ADD/DELETE TEST = PASS" needs the SVM API check and the SVM UI check to both pass.
+    ui_check_gates: z.boolean().default(true),
   }),
   timing: z.object({
     sync_wait_hours: z.number().positive().default(8),
+    // When the first SVM check happens. Defaults to sync_wait_hours (the flowchart's "wait 8 hours").
+    // Lower it to probe early: a pass finishes the cycle sooner and the real sync delay is measured;
+    // a miss is just retried, and the TIMEOUT deadline is still sync_wait_hours + retry_window_hours.
+    first_check_after_hours: z.number().positive().optional(),
     retry_every_minutes: z.number().positive().default(30),
     retry_window_hours: z.number().nonnegative().default(2),
     bom_ready_timeout_minutes: z.number().positive().default(30),
     removal_fallback_after_minutes: z.number().nonnegative().default(60),
     stuck_after_hours: z.number().positive().default(24),
   }),
+  // continuous: when a run passes, the next cycle starts on the next tick (the flowchart's loop).
+  // scheduled: runs only start from `start-run` (e.g. the daily pipeline).
+  cycle: z.object({ mode: z.enum(['continuous', 'scheduled']).default('continuous') }).default({}),
   components: z.array(component).min(1),
   control_component: component,
 });

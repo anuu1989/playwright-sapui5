@@ -6,7 +6,11 @@ uploading a CycloneDX SBOM to code location `e2e-<run_id>` and removed by upload
 without it (`mode=replace`), falling back to unmapping the code location. The test account only
 needs scan rights, never BOM delete.
 
-A run is one row in a run store; an hourly pipeline moves it forward, so nothing sleeps for 8 hours.
+The flow follows the team's flowchart (find → add → verify → wait → API + UI check → remove → verify →
+wait → API + UI check → repeat); only the removal differs, see
+[Mapping to the flowchart](docs/architecture.md#mapping-to-the-flowchart).
+
+A run is one row in a run store; a scheduled pipeline (every 30 minutes) moves it forward, so nothing sleeps for 8 hours.
 
 ```text
 ADDED → WAITING_ADD_SYNC → ADD_VERIFIED → REMOVING → REMOVED → REMOVE_VERIFIED
@@ -42,7 +46,8 @@ systems behave the same way (see [what must be confirmed](#must-be-confirmed-aga
    ```
    If the servers use a private CA, also set `NODE_EXTRA_CA_CERTS=/path/to/ca.pem`.
 3. **Start a run**: `npm run start-run`, then check it with `npm run status`.
-4. **Advance it**: run `npm run tick:all` every hour. `pipelines/tick.yml` does this and keeps the
+4. **Advance it**: run `npm run tick:all` every 30 minutes (matching `retry_every_minutes`). With `cycle.mode: continuous` (the default) the
+   next cycle starts by itself after a run passes; set `scheduled` to start runs only yourself. `pipelines/tick.yml` does this and keeps the
    run store on the `svm-e2e-state` branch between runs. A run takes about 16–20 hours.
 
 ## Commands (Node 20+)
@@ -53,7 +58,8 @@ systems behave the same way (see [what must be confirmed](#must-be-confirmed-aga
 | `npm run tick`                  | Black Duck steps: `ADDED` → `WAITING_ADD_SYNC`, removal, 401/403 → `REMOVAL_BLOCKED` |
 | `npm run verify`                | Playwright SVM checks for every due run                                              |
 | `npm run notify`                | Slack/Teams summary for finished runs                                                |
-| `npm run tick:all`              | `tick`, `verify`, `notify` (the hourly job)                                          |
+| `npm run plan`                  | What the next tick must do, from the run store alone (no network)                    |
+| `npm run tick:all`              | `tick`, Playwright only if an SVM check is due, then `notify` (the scheduled job)    |
 | `npm run status`                | Print every run                                                                      |
 | `npm run cleanup`               | Flag runs stuck for 24 h, unmap leftover code locations                              |
 | `npm run demo`                  | Full local run against the mock                                                      |
@@ -63,7 +69,7 @@ systems behave the same way (see [what must be confirmed](#must-be-confirmed-aga
 
 `PASS`; `FAIL` and `TIMEOUT` mean the sync is broken; `BLOCKED` (401/403 on removal) and `ERROR`
 (network, token, SVM 5xx) do not count as product failures and never turn into a false `TIMEOUT`.
-The SVM API decides pass or fail; the UI check is recorded as evidence and never fails a run alone.
+A test passes only when the SVM API check and the SVM UI check both pass (`svm.ui_check_gates`, on by default).
 
 ## Documentation
 

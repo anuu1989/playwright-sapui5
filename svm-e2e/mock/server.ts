@@ -105,6 +105,7 @@ export async function startMock(opts: MockOptions = {}): Promise<MockHandle> {
         items: (v ? bom(v.versionName) : []).map((c) => ({
           componentName: c.name,
           componentVersionName: c.version,
+          componentVersion: `${base}/api/components/${c.name}/versions/${c.version}`,
         })),
       });
     }

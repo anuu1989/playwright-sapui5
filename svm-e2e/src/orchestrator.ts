@@ -1,5 +1,5 @@
 import type { BdApi } from './bd-client';
-import type { Settings } from './config';
+import type { ComponentSpec, Settings } from './config';
 import { BlockedError } from './errors';
 import { buildAddSbom, buildRemoveSbom, type SbomInput } from './sbom-builder';
 import type { ScanUploader } from './scan-uploader';
@@ -38,50 +38,75 @@ function sbomInput(run: RunRow, cfg: Settings): SbomInput {
   };
 }
 
+const firstCheckHours = (cfg: Settings) =>
+  cfg.timing.first_check_after_hours ?? cfg.timing.sync_wait_hours;
+
 const hasComponent = (comps: { name: string; version: string }[], name: string, version: string) =>
   comps.some((c) => c.name === name && c.version === version);
 
-/** Start: upload the add SBOM, wait for the BOM, confirm component + a vulnerability, save as ADDED. */
+/**
+ * Start a run, following the flowchart:
+ *   1. find a vulnerable component   2. add it to Black Duck   3. verify Black Duck's assessment
+ *   4. save the test transaction (run_id / component_id / vuln_id)   5. wait for the sync
+ * Steps 1-3 are one loop: each candidate from settings.yaml is added in turn (replacing the
+ * previous one in the same code location) until Black Duck reports a vulnerability for it.
+ */
 export async function startRun(d: Deps): Promise<RunRow> {
   const log = d.log ?? console.log;
   const sleep = d.sleep ?? ((ms) => new Promise((r) => setTimeout(r, ms)));
   const { cfg } = d;
-  const vulnerable = cfg.components[0];
   const id = runId(nowOf(d));
   const versionName =
     cfg.blackduck.version_strategy === 'per_run' ? id : cfg.blackduck.shared_version;
-
   const pv = await d.bd.ensureVersion(cfg.blackduck.project, versionName);
-  const input: SbomInput = {
-    runId: id,
-    projectName: cfg.blackduck.project,
-    vulnerable,
-    control: cfg.control_component,
-  };
-  await d.uploader.upload({
-    sbom: buildAddSbom(input),
-    codeLocation: id,
-    projectName: cfg.blackduck.project,
-    versionName,
-  });
-  log(`[${id}] add SBOM uploaded`);
 
-  const deadline = nowOf(d).getTime() + cfg.timing.bom_ready_timeout_minutes * MIN;
-  for (;;) {
-    const comps = await d.bd.getBomComponents(pv);
-    if (
-      hasComponent(comps, vulnerable.name, vulnerable.version) &&
+  const tried: string[] = [];
+  let vulnerable: ComponentSpec | undefined;
+  let vulnIds: string[] = [];
+  let componentVersionId: string | undefined;
+  for (const candidate of cfg.components) {
+    const input: SbomInput = {
+      runId: id,
+      projectName: cfg.blackduck.project,
+      vulnerable: candidate,
+      control: cfg.control_component,
+    };
+    await d.uploader.upload({
+      sbom: buildAddSbom(input),
+      codeLocation: id,
+      projectName: cfg.blackduck.project,
+      versionName,
+    });
+    log(`[${id}] add SBOM uploaded with ${candidate.name}@${candidate.version}`);
+
+    const deadline = nowOf(d).getTime() + cfg.timing.bom_ready_timeout_minutes * MIN;
+    let comps = await d.bd.getBomComponents(pv);
+    while (!(
+      hasComponent(comps, candidate.name, candidate.version) &&
       hasComponent(comps, cfg.control_component.name, cfg.control_component.version)
-    )
+    )) {
+      if (nowOf(d).getTime() >= deadline)
+        throw new Error(`[${id}] BOM not ready within ${cfg.timing.bom_ready_timeout_minutes} min`);
+      await sleep(30_000);
+      comps = await d.bd.getBomComponents(pv);
+    }
+    const ids = await d.bd.getComponentVulns(pv, candidate.name, candidate.version);
+    if (ids.length > 0) {
+      vulnerable = candidate;
+      vulnIds = ids;
+      componentVersionId = comps.find(
+        (c) => c.name === candidate.name && c.version === candidate.version,
+      )?.versionId;
       break;
-    if (nowOf(d).getTime() >= deadline)
-      throw new Error(`[${id}] BOM not ready within ${cfg.timing.bom_ready_timeout_minutes} min`);
-    await sleep(30_000);
+    }
+    tried.push(`${candidate.name}@${candidate.version}`);
+    log(
+      `[${id}] Black Duck lists no vulnerabilities for ${tried[tried.length - 1]}; trying the next candidate`,
+    );
   }
-  const vulnIds = await d.bd.getComponentVulns(pv, vulnerable.name, vulnerable.version);
-  if (vulnIds.length === 0) {
+  if (!vulnerable) {
     throw new Error(
-      `[${id}] Black Duck lists no vulnerabilities for ${vulnerable.name}@${vulnerable.version}; pick another component`,
+      `[${id}] Black Duck lists no vulnerabilities for any candidate (${tried.join(', ')}); add components to settings.yaml`,
     );
   }
   const cl = await d.bd.findCodeLocation(id);
@@ -98,11 +123,12 @@ export async function startRun(d: Deps): Promise<RunRow> {
     codeLocationId: cl?.id,
     componentName: vulnerable.name,
     componentVersion: vulnerable.version,
+    componentVersionId,
     vulnIds,
     controlComponent: cfg.control_component.name,
     controlVersion: cfg.control_component.version,
     addedAt: now.toISOString(),
-    nextCheckAt: iso(now.getTime() + cfg.timing.sync_wait_hours * HOUR),
+    nextCheckAt: iso(now.getTime() + firstCheckHours(cfg) * HOUR),
     attempts: 0,
     evidence: {},
     updatedAt: now.toISOString(),
@@ -140,6 +166,46 @@ export async function tick(d: Deps): Promise<void> {
       }
     }
   }
+
+  try {
+    const next = await maybeStartNext(d);
+    if (next) log(`[${next.runId}] next cycle started`);
+  } catch (err) {
+    log(`next cycle not started: ${(err as Error).message}`);
+  }
+}
+
+/**
+ * The flowchart's "repeat for next cycle": once the latest run has passed and nothing is still in
+ * flight, start the next one. A failed run stops the loop until someone looks at it.
+ */
+export function shouldStartNext(rows: RunRow[], cfg: Settings): boolean {
+  if (cfg.cycle.mode !== 'continuous') return false;
+  if (rows.length === 0) return false; // the first run is started explicitly
+  if (!rows.every((r) => FINAL_STATES.includes(r.state))) return false;
+  const latest = [...rows].sort((a, b) => a.addedAt.localeCompare(b.addedAt)).pop()!;
+  return latest.state === 'REMOVE_VERIFIED';
+}
+
+export async function maybeStartNext(d: Deps): Promise<RunRow | undefined> {
+  return shouldStartNext(d.store.all(), d.cfg) ? startRun(d) : undefined;
+}
+
+/**
+ * What the next tick has to do, decided from the run store alone (no network, no secrets), so a
+ * pipeline can skip installing browsers and calling anything when nothing is due.
+ */
+export function plan(store: RunStore, cfg: Settings, at: Date = new Date()) {
+  const rows = store.all();
+  const dueAdded = store.dueRuns(['ADDED'], at).length > 0;
+  const blackDuck =
+    dueAdded ||
+    rows.some((r) => r.state === 'ADD_VERIFIED' || r.state === 'REMOVING') ||
+    shouldStartNext(rows, cfg);
+  // ADDED runs that are due become WAITING_ADD_SYNC in the same tick, so their check is due too.
+  const svm = dueAdded || store.dueRuns(['WAITING_ADD_SYNC', 'REMOVED'], at).length > 0;
+  const notify = store.finalUnnotified().length > 0;
+  return { blackDuck, svm, notify, work: blackDuck || svm || notify };
 }
 
 /** ADD_VERIFIED: upload the remove SBOM. REMOVING: confirm the BOM dropped it, else unmap after the fallback delay. */
@@ -159,9 +225,9 @@ export async function removeStep(d: Deps, run: RunRow): Promise<void> {
     d.store.transition(run.runId, 'REMOVED', {
       removalMethod: method,
       removedAt: now.toISOString(),
-      nextCheckAt: iso(now.getTime() + cfg.timing.sync_wait_hours * HOUR),
+      nextCheckAt: iso(now.getTime() + firstCheckHours(cfg) * HOUR),
     });
-    log(`[${run.runId}] REMOVED via ${method}, first SVM check at +${cfg.timing.sync_wait_hours}h`);
+    log(`[${run.runId}] REMOVED via ${method}, first SVM check at +${firstCheckHours(cfg)}h`);
   };
 
   if (run.state === 'ADD_VERIFIED') {

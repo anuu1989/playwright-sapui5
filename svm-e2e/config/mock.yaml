@@ -16,6 +16,8 @@ timing:
   bom_ready_timeout_minutes: 1
   removal_fallback_after_minutes: 0.2 # ~12 s
   stuck_after_hours: 24
+cycle:
+  mode: scheduled # the demo runs a single cycle
 components:
   - {
       name: log4j-core,

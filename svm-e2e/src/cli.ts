@@ -1,7 +1,8 @@
+import { appendFileSync } from 'node:fs';
 import { BdClient } from './bd-client';
 import { loadSettings, requireEnv, storePath } from './config';
 import { notifyFinished, summarize } from './notify';
-import { cleanup, startRun, tick, type Deps } from './orchestrator';
+import { cleanup, plan, startRun, tick, type Deps } from './orchestrator';
 import { ApiScanUploader } from './scan-uploader';
 import { RunStore } from './store';
 
@@ -35,6 +36,20 @@ async function main() {
       if (r.stuck.length) process.exitCode = 1;
       break;
     }
+    case 'plan': {
+      // Reads only the run store: no tokens needed. Exposes flags to GitHub Actions when available.
+      const p = plan(new RunStore(storePath()), loadSettings());
+      console.log(JSON.stringify(p));
+      if (process.env.GITHUB_OUTPUT) {
+        appendFileSync(
+          process.env.GITHUB_OUTPUT,
+          Object.entries(p)
+            .map(([k, v]) => `${k}=${v}\n`)
+            .join(''),
+        );
+      }
+      break;
+    }
     case 'notify':
       await notifyFinished(new RunStore(storePath()));
       break;
@@ -43,7 +58,7 @@ async function main() {
         console.log(`${summarize(run)} | next ${run.nextCheckAt}`);
       break;
     default:
-      console.error('usage: cli.ts start | tick | notify | cleanup | status');
+      console.error('usage: cli.ts start | tick | plan | notify | cleanup | status');
       process.exitCode = 2;
   }
 }

@@ -4,6 +4,8 @@ import { BlockedError, InfraError } from './errors';
 export interface BomComponent {
   name: string;
   version: string;
+  /** Black Duck's component version id, when the BOM item carries it. */
+  versionId?: string;
 }
 
 export interface BdProjectVersion {
@@ -35,6 +37,7 @@ const versionItem = z.object({ versionName: z.string(), _meta: z.object({ href: 
 const bomItem = z.object({
   componentName: z.string(),
   componentVersionName: z.string().optional(),
+  componentVersion: z.string().optional(), // href of the component version
 });
 const vulnItem = z.object({
   componentName: z.string(),
@@ -148,7 +151,11 @@ export class BdClient implements BdApi {
       page(bomItem),
       MEDIA.bom,
     );
-    return res.items.map((i) => ({ name: i.componentName, version: i.componentVersionName ?? '' }));
+    return res.items.map((i) => ({
+      name: i.componentName,
+      version: i.componentVersionName ?? '',
+      versionId: i.componentVersion ? idFromHref(i.componentVersion) : undefined,
+    }));
   }
 
   async getComponentVulns(

@@ -12,9 +12,10 @@ export class FakeBd implements BdApi {
   mapped = true;
   unmapCalls = 0;
   vulns = ['CVE-2021-44228'];
+  vulnsByName: Record<string, string[]> = {};
   ensureVersion = async () => ({ projectId: 'p1', versionId: 'v1' });
   getBomComponents = async () => this.bom;
-  getComponentVulns = async () => this.vulns;
+  getComponentVulns = async (_v: unknown, name: string) => this.vulnsByName[name] ?? this.vulns;
   findCodeLocation = async () => ({ id: 'cl1', mapped: this.mapped });
   unmapCodeLocation = async () => {
     this.unmapCalls++;

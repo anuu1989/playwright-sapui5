@@ -29,6 +29,7 @@ describe('against the mock Black Duck/SVM', () => {
     const h = await harness();
     const run = await startRun(h.deps);
     expect(run.vulnIds).toEqual(['CVE-2021-44228']);
+    expect(run.componentVersionId).toBe('2.14.1'); // saved transaction: component version id
     h.store.transition(run.runId, 'ADD_VERIFIED');
     await tick(h.deps);
     await tick(h.deps);

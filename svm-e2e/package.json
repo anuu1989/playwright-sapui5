@@ -13,11 +13,12 @@
     "cleanup": "tsx src/cli.ts cleanup",
     "status": "tsx src/cli.ts status",
     "verify": "playwright test --pass-with-no-tests",
-    "tick:all": "npm run tick && (npx playwright test --pass-with-no-tests; rc=$?; npm run notify; exit $rc)",
+    "tick:all": "tsx scripts/tick-all.ts",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json",
     "demo": "tsx scripts/demo.ts",
-    "spike": "tsx scripts/spike.ts"
+    "spike": "tsx scripts/spike.ts",
+    "plan": "tsx src/cli.ts plan"
   },
   "dependencies": {
     "yaml": "^2.5.0",

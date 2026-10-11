@@ -87,15 +87,16 @@ leftovers of failed runs. Whole versions can be removed by the Black Duck admin.
 
 ## Troubleshooting
 
-| Symptom                                                      | Cause and fix                                                                                                                                     |
-| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Missing required environment variable`                      | Export the secret named in the message                                                                                                            |
-| `Black Duck project "…" not found`                           | Create the test project first                                                                                                                     |
-| `no vulnerabilities for <component>` at start                | Black Duck did not match or has none for that component; choose another in `components`                                                           |
-| Spike step fails                                             | See the table in "Phase 0 spike" above                                                                                                            |
-| `Unexpected Black Duck response` / `Unexpected SVM response` | An API changed shape or the spike assumptions were wrong; adjust the zod schema in `src/bd-client.ts` or `verify/svm-api.ts`                      |
-| Playwright "No tests found"                                  | No run is due this hour; `npm run verify` treats that as success                                                                                  |
-| Every run `ERROR` at once                                    | Token expired or lost scope, or Black Duck/SVM is down                                                                                            |
-| Remove never happens and the unmap fallback keeps firing     | Duplicate detection or a minimum scan interval is on. Ask the Black Duck admin; raise `removal_fallback_after_minutes` above the minimum interval |
-| UI check fails but the run passes                            | By design; fix the locators in `verify/pages/svm-asset-page.ts`                                                                                   |
-| TLS errors against an internal host                          | Set `NODE_EXTRA_CA_CERTS` to your CA bundle                                                                                                       |
+| Symptom                                                      | Cause and fix                                                                                                                                         |
+| ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Missing required environment variable`                      | Export the secret named in the message                                                                                                                |
+| `Black Duck project "…" not found`                           | Create the test project first                                                                                                                         |
+| `no vulnerabilities for <component>` at start                | Black Duck did not match or has none for that component; choose another in `components`                                                               |
+| Spike step fails                                             | See the table in "Phase 0 spike" above                                                                                                                |
+| `Unexpected Black Duck response` / `Unexpected SVM response` | An API changed shape or the spike assumptions were wrong; adjust the zod schema in `src/bd-client.ts` or `verify/svm-api.ts`                          |
+| Playwright "No tests found"                                  | No run is due this hour; `npm run verify` treats that as success                                                                                      |
+| Every run `ERROR` at once                                    | Token expired or lost scope, or Black Duck/SVM is down                                                                                                |
+| Remove never happens and the unmap fallback keeps firing     | Duplicate detection or a minimum scan interval is on. Ask the Black Duck admin; raise `removal_fallback_after_minutes` above the minimum interval     |
+| API check passes but the run keeps missing                   | The UI check is failing and `svm.ui_check_gates` is on. Fix the locators in `verify/pages/svm-asset-page.ts`, or set the flag to `false` while you do |
+| The loop stopped                                             | The latest run did not pass (`continuous` mode only continues after `REMOVE_VERIFIED`). Fix the cause, then `npm run start-run`                       |
+| TLS errors against an internal host                          | Set `NODE_EXTRA_CA_CERTS` to your CA bundle                                                                                                           |

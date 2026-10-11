@@ -13,6 +13,7 @@ svm:
   components_path: /api/assets/{project}/components
   asset_ui_path: /assets/{project}
   asset_lookup: by_project_name
+  ui_check_gates: true # the test passes only when the SVM API check AND the SVM UI check pass
 timing:
   sync_wait_hours: 8
   retry_every_minutes: 30
@@ -20,7 +21,11 @@ timing:
   bom_ready_timeout_minutes: 30
   removal_fallback_after_minutes: 60
   stuck_after_hours: 24
-# First entry is the one under test; the rest are backups. Verify during the Phase 0 spikes that
+# Next cycle: `continuous` starts a new run when the latest one passes (the flowchart's loop);
+# `scheduled` only starts runs from `npm run start-run`.
+cycle:
+  mode: continuous
+# Candidates are tried in order until Black Duck reports a vulnerability; the rest are backups. Verify during the Phase 0 spikes that
 # Black Duck matches them from an SBOM and still lists vulnerabilities.
 components:
   - {

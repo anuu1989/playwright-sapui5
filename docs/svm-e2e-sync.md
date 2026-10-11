@@ -19,10 +19,12 @@ This test proves the sync works, in both directions:
 2. **Remove:** take that component out of Black Duck. About 8 hours later it should disappear from SVM.
 
 Because of the waiting, one test run takes 16–20 hours. So nothing sleeps. Each run is a row in a
-small file, and a job that runs **every hour** looks at the file and moves any run that is due to
+small file, and a job that runs **every 30 minutes** looks at the file and moves any run that is due to
 its next step.
 
-The test account cannot delete BOM components, so it never deletes. It adds a component by
+The flow is the team's flowchart: find a vulnerable component, add it to Black Duck, verify, wait
+8 hours, check SVM through the API and the UI, remove it, verify, wait, check again, and repeat. The
+one difference: the test account cannot delete BOM components, so it never deletes. It adds a component by
 **uploading a small SBOM file** (a list of components) and removes it by **uploading the same file
 again without that component** to the same _code location_. Black Duck replaces the contents of a
 code location, so the component drops off the BOM. This needs scan rights only.
@@ -36,7 +38,7 @@ code location, so the component drops off the BOM. This needs scan rights only.
 | Code location     | The named place a scan is stored. Each run has its own: `e2e-<run_id>`                                                                                                                                                                     |
 | Run               | One add-then-remove test, saved as one row in `.data/e2e_runs.json`                                                                                                                                                                        |
 | Control component | A harmless component kept in both SBOMs. If it vanishes from SVM too, SVM lost the whole asset and "component absent" would be a false pass. After the unmap fallback it is dropped along with everything else, so it is not required then |
-| Tick              | The hourly job that advances due runs                                                                                                                                                                                                      |
+| Tick              | The scheduled job (every 30 minutes) that advances due runs                                                                                                                                                                                |
 
 ## The life of a run
 
@@ -232,7 +234,7 @@ export SLACK_WEBHOOK_URL=... # optional
 
 npm run start-run   # start one run
 npm run status      # see it: state and next check time
-npm run tick:all    # run this every hour (pipelines/tick.yml does it for you)
+npm run tick:all    # run this every 30 minutes (pipelines/tick.yml does it for you)
 ```
 
 `tick:all` does three things in order: `tick` (Black Duck steps), Playwright (SVM checks for due
